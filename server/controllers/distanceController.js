@@ -1,6 +1,6 @@
 const Distance = require("../models/Distance");
 
-// POST - Store Distance Data
+// POST - Store Distance Data realtime
 const storeDistance = async (req, res) => {
   try {
     const { value } = req.body;
@@ -47,4 +47,22 @@ const getLatestDistance = async (req, res) => {
   }
 };
 
-module.exports = { storeDistance, getLatestDistance };
+// POST - Store All Distance
+const storeAllDistance = async (req, res) => {
+  try {
+    const { value } = req.body;
+    if (!value)
+      return res.status(400).json({ message: "Distance value is required" });
+
+    // Create a new record for each reading
+    const newDistance = new Distance({ value, timestamp: new Date() });
+    await newDistance.save();
+
+    res.status(201).json({ message: "Data stored successfully", data: newDistance });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+
+module.exports = { storeDistance, getLatestDistance, storeAllDistance };
