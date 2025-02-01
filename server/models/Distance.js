@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const DistanceSchema = new mongoose.Schema({
-  value: { type: Number, required: true },
+  distance: { type: Number, required: true },
   timestamp: { type: Date, default: Date.now },
 });
 
