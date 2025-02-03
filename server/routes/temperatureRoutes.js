@@ -7,7 +7,7 @@ const {
 const router = express.Router();
 
 // Store temperature & humidity data
-router.post("/", storeTemperature); // ✅ This should match `/api/temperature`
+router.post("/", storeTemperature);
 
 // Get latest temperature & humidity data
 router.get("/", getLatestTemperature);
