@@ -7,6 +7,7 @@ const temperatureRoutes = require("./routes/temperatureRoutes");
 const authRoutes = require("./routes/authRoutes");
 const authMiddleware = require("./middleware/auth");
 const batteryRoutes = require("./routes/batteryRoutes");
+const dcPowerRoutes = require("./routes/dcPowerRoutes");
 
 dotenv.config();
 connectDB();
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/distance", authMiddleware, distanceRoutes);
 app.use("/api/temperature", authMiddleware, temperatureRoutes);
 app.use("/api/battery", batteryRoutes);
+app.use("/api/dcpower", dcPowerRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
