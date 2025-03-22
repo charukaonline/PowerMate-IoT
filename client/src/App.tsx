@@ -42,10 +42,10 @@ function App() {
   // Add a timeout to prevent infinite loading
   if (isCheckingAuth) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
         <div className="text-center">
           <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full inline-block mb-4"></div>
-          <p>Loading...</p>
+          <p className=' text-white'>Loading...</p>
         </div>
       </div>
     );
