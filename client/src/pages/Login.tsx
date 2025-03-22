@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,16 +11,45 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuthStore } from "@/stores/authStore"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons"
 
 export default function Login({
     className,
     ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-    return (
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const { login, isLoading, error, isAuthenticated } = useAuthStore()
+    const navigate = useNavigate()
+    
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/");
+        }
+    }, [isAuthenticated, navigate]);
 
+    useEffect(() => {
+        document.title = "PowerMate | Login"
+    }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        try {
+            await login(email, password)
+            // The redirection will happen in the useEffect above when isAuthenticated changes
+        } catch (err) {
+            // Error is handled by the store
+            console.error("Login failed:", err);
+        }
+    }
+
+    return (
         <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
             <div className="w-full max-w-sm">
-
                 <div className={cn("flex flex-col gap-6", className)} {...props}>
                     <Card>
                         <CardHeader>
@@ -28,7 +59,13 @@ export default function Login({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form>
+                            {error && (
+                                <Alert variant="destructive" className="mb-4">
+                                    <ExclamationTriangleIcon className="h-4 w-4" />
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
+                            )}
+                            <form onSubmit={handleSubmit}>
                                 <div className="flex flex-col gap-6">
                                     <div className="grid gap-2">
                                         <Label htmlFor="email">Email</Label>
@@ -36,6 +73,8 @@ export default function Login({
                                             id="email"
                                             type="email"
                                             placeholder="m@example.com"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
                                             required
                                         />
                                     </div>
@@ -49,18 +88,27 @@ export default function Login({
                                                 Forgot your password?
                                             </a>
                                         </div>
-                                        <Input id="password" type="password" required />
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                        />
                                     </div>
-                                    <Button type="submit" className="w-full">
-                                        Login
+                                    <Button
+                                        type="submit"
+                                        className="w-full"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? "Logging in..." : "Login"}
                                     </Button>
                                 </div>
                             </form>
                         </CardContent>
                     </Card>
                 </div>
-
             </div>
-        </div >
+        </div>
     )
 }

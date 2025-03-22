@@ -22,38 +22,94 @@ function App() {
   const { isCheckingAuth, checkAuth } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
+    // Add a timeout to prevent infinite loading
+    const authCheck = async () => {
+      try {
+        await Promise.race([
+          checkAuth(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+          )
+        ]);
+      } catch (error) {
+        console.error('Auth check timed out or failed:', error);
+      }
+    };
+
+    authCheck();
   }, [checkAuth]);
 
-  if (isCheckingAuth) return <div>Loading...</div>;
+  // Add a timeout to prevent infinite loading
+  if (isCheckingAuth) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full inline-block mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="ui-theme">
       <Router>
-
         <Routes>
+          {/* Public routes */}
           <Route path='/auth/login' element={
             <RedirectAuthenticatedUser>
               <Login />
             </RedirectAuthenticatedUser>
-          }
-          />
-          <Route path='*' element={<NotFound />} />
+          } />
+          
+          {/* Protected routes wrapped with Layout */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/power-supply" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <PowerSupply />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/current-monitoring" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <CurrentMonitoring />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/generator-fuel" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <GeneratorFuel />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/backup-battery" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <BackupBattery />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <Settings />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
-
-        <ProtectedRoute>
-          <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/power-supply" element={<PowerSupply />} />
-              <Route path="/current-monitoring" element={<CurrentMonitoring />} />
-              <Route path="/generator-fuel" element={<GeneratorFuel />} />
-              <Route path="/backup-battery" element={<BackupBattery />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </Layout>
-          <Toaster />
-        </ProtectedRoute>
+        <Toaster />
       </Router>
     </ThemeProvider>
   );
