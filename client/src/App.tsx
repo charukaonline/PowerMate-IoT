@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import Layout from '@/components/layout/Layout';
@@ -11,25 +11,49 @@ import BackupBattery from '@/pages/BackupBattery';
 import Settings from '@/pages/Settings';
 
 import './App.css';
+import { useAuthStore } from './stores/authStore';
+import Login from './pages/Login';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { RedirectAuthenticatedUser } from './components/RedirectAuthenticatedUser';
+import NotFound from './pages/NotFound';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isCheckingAuth, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  if (isCheckingAuth) return <div>Loading...</div>;
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="ui-theme">
       <Router>
-        <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/power-supply" element={<PowerSupply />} />
-            <Route path="/current-monitoring" element={<CurrentMonitoring />} />
-            <Route path="/generator-fuel" element={<GeneratorFuel />} />
-            <Route path="/backup-battery" element={<BackupBattery />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </Layout>
-        <Toaster />
+
+        <Routes>
+          <Route path='/auth/login' element={
+            <RedirectAuthenticatedUser>
+              <Login />
+            </RedirectAuthenticatedUser>
+          }
+          />
+          <Route path='*' element={<NotFound />} />
+        </Routes>
+
+        <ProtectedRoute>
+          <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/power-supply" element={<PowerSupply />} />
+              <Route path="/current-monitoring" element={<CurrentMonitoring />} />
+              <Route path="/generator-fuel" element={<GeneratorFuel />} />
+              <Route path="/backup-battery" element={<BackupBattery />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </Layout>
+          <Toaster />
+        </ProtectedRoute>
       </Router>
     </ThemeProvider>
   );
