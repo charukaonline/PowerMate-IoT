@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 import { 
   Menu, 
   Bell, 
@@ -25,6 +26,11 @@ interface NavbarProps {
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }: NavbarProps) => {
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -98,7 +104,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }: NavbarProps) => {
               <DropdownMenuItem asChild>
                 <Link to="/settings">Settings</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
