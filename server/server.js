@@ -33,4 +33,4 @@ app.use("/api/dcpower", dcPowerRoutes);
 app.use("/api/userAuth", userAuthRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT} Hello world`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
