@@ -8,16 +8,11 @@ const authRoutes = require("./routes/authRoutes");
 const authMiddleware = require("./middleware/auth");
 const batteryRoutes = require("./routes/batteryRoutes");
 
-const userAuthRoutes = require("./routes/userAuthRoutes");
-
 dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 
 // Auth routes don't need auth middleware
@@ -27,8 +22,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/distance", authMiddleware, distanceRoutes);
 app.use("/api/temperature", authMiddleware, temperatureRoutes);
 app.use("/api/battery", batteryRoutes);
-
-app.use("/api/userAuth", userAuthRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

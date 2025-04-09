@@ -26,7 +26,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const routes = [
     {
       title: 'Dashboard',
-      href: '/',
+      href: '/dashboard',
       icon: <Home className="h-5 w-5" />,
     },
     {
