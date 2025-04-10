@@ -24,6 +24,16 @@ app.use(
 );
 app.use(express.json());
 
+// Basic connectivity test endpoint
+app.get("/api/ping", (req, res) => {
+  console.log("Ping received from:", req.ip);
+  res.status(200).json({
+    status: "online",
+    message: "Server is reachable",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Auth routes don't need auth middleware
 app.use("/api/auth", authRoutes);
 
@@ -37,4 +47,9 @@ app.use("/api/power", powerRoutes);
 app.use("/api/userAuth", userAuthRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(
+    `Server available at http://localhost:${PORT} and on your local network`
+  );
+});
