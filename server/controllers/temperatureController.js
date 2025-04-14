@@ -3,9 +3,9 @@ const Temperature = require("../models/Temperature");
 // POST - Store or Update Temperature and Humidity Data
 const storeTemperature = async (req, res) => {
   try {
-    const { temperatureC, temperatureF, humidity } = req.body;
+    const { temperatureC, temperatureF, humidity = 0 } = req.body;
 
-    if (temperatureC == null || temperatureF == null || humidity == null) {
+    if (temperatureC == null || temperatureF == null) {
       return res.status(400).json({ message: "All fields are required" });
     }
 

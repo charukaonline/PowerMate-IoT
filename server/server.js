@@ -9,6 +9,7 @@ const authMiddleware = require("./middleware/auth");
 const batteryRoutes = require("./routes/batteryRoutes");
 const dcPowerRoutes = require("./routes/dcPowerRoutes");
 const powerRoutes = require("./routes/powerRoutes");
+const sensorDataRoutes = require("./routes/sensorDataRoutes");
 
 const userAuthRoutes = require("./routes/userAuthRoutes");
 
@@ -43,6 +44,7 @@ app.use("/api/temperature", authMiddleware, temperatureRoutes);
 app.use("/api/battery", batteryRoutes);
 app.use("/api/dcpower", dcPowerRoutes);
 app.use("/api/power", powerRoutes);
+app.use("/api/sensor-data", sensorDataRoutes);
 
 app.use("/api/userAuth", userAuthRoutes);
 
