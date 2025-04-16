@@ -113,10 +113,9 @@ const storeSensorData = async (req, res) => {
       }
     }
 
-    // Return consolidated results
+    // Return consolidated results without deviceId
     return res.status(200).json({
       message: "Sensor data processed",
-      deviceId: req.deviceId, // From auth middleware
       timestamp,
       results,
     });
