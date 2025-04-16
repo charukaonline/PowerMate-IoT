@@ -3,20 +3,36 @@ const DCPower = require("../models/DCPower");
 const Distance = require("../models/Distance");
 const Temperature = require("../models/Temperature");
 
+// Database connection status tracking
+let dbConnected = !!process.env.MONGO_URI;
+
 // POST - Store all sensor data in a single request (excluding temperature)
 const storeSensorData = async (req, res) => {
   try {
     console.log("Received sensor data:", req.body);
     const results = {};
     const timestamp = new Date();
-    const deviceId = req.deviceId; // From auth middleware
+
+    // Get deviceId from payload if available, otherwise use the one from auth middleware
+    const deviceId = req.body.deviceId || req.deviceId || "unknown";
+    console.log(`Processing data for device: ${deviceId}`);
+
+    // Check if we're in DB-less mode
+    if (!dbConnected && !process.env.MONGO_URI) {
+      return res.status(200).json({
+        message: "Sensor data received (DB storage disabled)",
+        deviceId,
+        timestamp,
+        data: req.body,
+      });
+    }
 
     // Process battery data if provided
     if (req.body.battery) {
       try {
         const batteryData = processBatteryData(req.body.battery);
         // Since Battery model is designed to keep only the latest values
-        let batteryRecord = await Battery.findOne();
+        let batteryRecord = await Battery.findOne({ deviceId });
 
         if (batteryRecord) {
           // Update existing record
@@ -29,6 +45,7 @@ const storeSensorData = async (req, res) => {
           // Create new record
           batteryRecord = new Battery({
             ...batteryData,
+            deviceId,
             timestamp,
           });
           await batteryRecord.save();
@@ -45,7 +62,7 @@ const storeSensorData = async (req, res) => {
       try {
         const dcPowerData = processDCPowerData(req.body.dcPower);
         // Since DCPower model is designed to keep only the latest values
-        let dcPowerRecord = await DCPower.findOne();
+        let dcPowerRecord = await DCPower.findOne({ deviceId });
 
         if (dcPowerRecord) {
           // Update existing record
@@ -57,6 +74,7 @@ const storeSensorData = async (req, res) => {
           // Create new record
           dcPowerRecord = new DCPower({
             ...dcPowerData,
+            deviceId,
             timestamp,
           });
           await dcPowerRecord.save();
@@ -72,12 +90,23 @@ const storeSensorData = async (req, res) => {
     if (req.body.distance) {
       try {
         const distanceData = processDistanceData(req.body.distance);
-        // Create a new Distance record (seems to allow multiple records)
-        const distanceRecord = new Distance({
-          ...distanceData,
-          timestamp,
-        });
-        await distanceRecord.save();
+        // Since Distance model is now designed to keep only the latest values
+        let distanceRecord = await Distance.findOne({ deviceId });
+
+        if (distanceRecord) {
+          // Update existing record
+          distanceRecord.distance = distanceData.distance;
+          distanceRecord.timestamp = timestamp;
+          await distanceRecord.save();
+        } else {
+          // Create new record
+          distanceRecord = new Distance({
+            ...distanceData,
+            deviceId,
+            timestamp,
+          });
+          await distanceRecord.save();
+        }
 
         results.distance = { success: true, data: distanceRecord };
       } catch (error) {
@@ -106,12 +135,25 @@ const storeTempData = async (req, res) => {
   try {
     console.log("Received temperature data:", req.body);
     const timestamp = new Date();
-    const deviceId = req.deviceId; // From auth middleware
+
+    // Get deviceId from payload if available, otherwise use the one from auth middleware
+    const deviceId = req.body.deviceId || req.deviceId || "unknown";
+    console.log(`Processing temperature data for device: ${deviceId}`);
+
+    // Check if we're in DB-less mode
+    if (!dbConnected && !process.env.MONGO_URI) {
+      return res.status(200).json({
+        message: "Temperature data received (DB storage disabled)",
+        deviceId,
+        timestamp,
+        data: req.body,
+      });
+    }
 
     try {
       const temperatureData = processTemperatureData(req.body);
-      // Temperature model is designed to have only one document
-      let temperatureRecord = await Temperature.findOne();
+      // Temperature model is designed to have only one document per device
+      let temperatureRecord = await Temperature.findOne({ deviceId });
 
       if (temperatureRecord) {
         // Update existing record
@@ -124,6 +166,7 @@ const storeTempData = async (req, res) => {
         // Create new record
         temperatureRecord = new Temperature({
           ...temperatureData,
+          deviceId,
           timestamp,
         });
         await temperatureRecord.save();
@@ -157,9 +200,29 @@ function processBatteryData(data) {
   let voltage, current, percentage;
 
   if (typeof data === "object") {
-    voltage = data.voltage !== undefined ? data.voltage : data.v;
-    current = data.current !== undefined ? data.current : data.i;
-    percentage = data.percentage !== undefined ? data.percentage : data.soc;
+    // Handle multiple possible field names
+    voltage =
+      data.voltage !== undefined
+        ? data.voltage
+        : data.v !== undefined
+        ? data.v
+        : data.batteryVoltage;
+
+    current =
+      data.current !== undefined
+        ? data.current
+        : data.i !== undefined
+        ? data.i
+        : data.batteryCurrent;
+
+    percentage =
+      data.percentage !== undefined
+        ? data.percentage
+        : data.soc !== undefined
+        ? data.soc
+        : data.batteryLevel !== undefined
+        ? data.batteryLevel
+        : data.level;
   } else {
     throw new Error("Invalid battery data format");
   }
@@ -184,8 +247,19 @@ function processDCPowerData(data) {
   let voltage, current;
 
   if (typeof data === "object") {
-    voltage = data.voltage !== undefined ? data.voltage : data.v;
-    current = data.current !== undefined ? data.current : data.i;
+    voltage =
+      data.voltage !== undefined
+        ? data.voltage
+        : data.v !== undefined
+        ? data.v
+        : data.dcVoltage;
+
+    current =
+      data.current !== undefined
+        ? data.current
+        : data.i !== undefined
+        ? data.i
+        : data.dcCurrent;
   } else {
     throw new Error("Invalid DC power data format");
   }
@@ -205,7 +279,14 @@ function processDistanceData(data) {
   let distance;
 
   if (typeof data === "object") {
-    distance = data.distance !== undefined ? data.distance : data.d;
+    distance =
+      data.distance !== undefined
+        ? data.distance
+        : data.d !== undefined
+        ? data.d
+        : data.fuelLevel !== undefined
+        ? data.fuelLevel
+        : data.level;
   } else if (typeof data === "number" || typeof data === "string") {
     distance = data;
   } else {
@@ -235,9 +316,31 @@ function processTemperatureData(data) {
       temperatureF = (parseFloat(temperatureC) * 9) / 5 + 32;
     } else {
       temperatureC =
-        data.temperatureC !== undefined ? data.temperatureC : data.celsius;
+        data.temperatureC !== undefined
+          ? data.temperatureC
+          : data.celsius !== undefined
+          ? data.celsius
+          : data.temp_c !== undefined
+          ? data.temp_c
+          : data.tempC;
+
       temperatureF =
-        data.temperatureF !== undefined ? data.temperatureF : data.fahrenheit;
+        data.temperatureF !== undefined
+          ? data.temperatureF
+          : data.fahrenheit !== undefined
+          ? data.fahrenheit
+          : data.temp_f !== undefined
+          ? data.temp_f
+          : data.tempF;
+
+      // If we have Celsius but not Fahrenheit, calculate it
+      if (temperatureC !== undefined && temperatureF === undefined) {
+        temperatureF = (parseFloat(temperatureC) * 9) / 5 + 32;
+      }
+      // If we have Fahrenheit but not Celsius, calculate it
+      else if (temperatureF !== undefined && temperatureC === undefined) {
+        temperatureC = ((parseFloat(temperatureF) - 32) * 5) / 9;
+      }
     }
 
     humidity =
@@ -245,6 +348,8 @@ function processTemperatureData(data) {
         ? data.humidity
         : data.humid !== undefined
         ? data.humid
+        : data.hum !== undefined
+        ? data.hum
         : 0;
   } else {
     throw new Error("Invalid temperature data format");
