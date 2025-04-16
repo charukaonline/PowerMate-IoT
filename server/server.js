@@ -4,6 +4,7 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const authRoutes = require("./routes/authRoutes");
+const userAuthRoutes = require("./routes/userAuthRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -69,6 +70,7 @@ app.get("/api/ping", (req, res) => {
 // Sensor data routes
 app.use("/api/auth", authRoutes);
 app.use("/api/sensor-data", sensorDataRoutes);
+app.use("/api/userAuth", userAuthRoutes);
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
