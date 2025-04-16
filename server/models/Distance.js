@@ -6,8 +6,9 @@ const distanceSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-// Distance keeps history, so we don't need a unique index on deviceId
-distanceSchema.index({ deviceId: 1, timestamp: -1 });
+// This ensures we only keep one document for each device
+distanceSchema.index({ deviceId: 1 }, { unique: true });
+distanceSchema.index({ timestamp: -1 });
 
 const Distance = mongoose.model("Distance", distanceSchema);
 

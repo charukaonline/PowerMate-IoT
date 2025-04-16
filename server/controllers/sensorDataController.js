@@ -90,13 +90,23 @@ const storeSensorData = async (req, res) => {
     if (req.body.distance) {
       try {
         const distanceData = processDistanceData(req.body.distance);
-        // Create a new Distance record (keeps history)
-        const distanceRecord = new Distance({
-          ...distanceData,
-          deviceId,
-          timestamp,
-        });
-        await distanceRecord.save();
+        // Since Distance model is now designed to keep only the latest values
+        let distanceRecord = await Distance.findOne({ deviceId });
+
+        if (distanceRecord) {
+          // Update existing record
+          distanceRecord.distance = distanceData.distance;
+          distanceRecord.timestamp = timestamp;
+          await distanceRecord.save();
+        } else {
+          // Create new record
+          distanceRecord = new Distance({
+            ...distanceData,
+            deviceId,
+            timestamp,
+          });
+          await distanceRecord.save();
+        }
 
         results.distance = { success: true, data: distanceRecord };
       } catch (error) {
