@@ -3,9 +3,23 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
+const authRoutes = require("./routes/authRoutes");
 
+// Load environment variables
 dotenv.config();
-connectDB();
+
+// Check for MongoDB URI
+if (!process.env.MONGO_URI) {
+  console.error("ERROR: MONGODB_URI environment variable is not defined!");
+  console.error(
+    "Please create or update your .env file with a valid MongoDB URI"
+  );
+  console.error("Example: MONGODB_URI=mongodb://localhost:27017/powermate");
+  console.error("Continuing with database connection disabled...");
+} else {
+  // Only connect to the database if we have a URI
+  connectDB();
+}
 
 const app = express();
 // Allow requests from all origins for IoT device connectivity
@@ -36,6 +50,7 @@ app.get("/", (req, res) => {
     endpoints: {
       ping: "/api/ping - Test API connectivity",
       sensorData: "/api/sensor-data/data - Submit sensor readings (POST)",
+      auth: "/api/auth/device - Authenticate devices (POST)",
     },
     documentation: "Contact administrator for API documentation",
   });
@@ -52,6 +67,7 @@ app.get("/api/ping", (req, res) => {
 });
 
 // Sensor data routes
+app.use("/api/auth", authRoutes);
 app.use("/api/sensor-data", sensorDataRoutes);
 
 // Catch-all route for undefined routes
@@ -62,7 +78,9 @@ app.use((req, res) => {
     availableEndpoints: [
       "GET /",
       "GET /api/ping",
+      "POST /api/auth/device",
       "POST /api/sensor-data/data",
+      "POST /api/sensor-data/temp-data",
     ],
   });
 });
