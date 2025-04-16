@@ -5,4 +5,6 @@ const DistanceSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("Distance", DistanceSchema);
+const Distance = mongoose.model("Distance", DistanceSchema);
+
+module.exports = Distance;

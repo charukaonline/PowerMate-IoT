@@ -3,13 +3,16 @@ const jwt = require("jsonwebtoken");
 // Create a map of allowed device IDs with their secrets
 // In production, you would store this in a database
 const ALLOWED_DEVICES = {
-  "PowerMate-ESP32-001": "deviceSecret1",
+  "tower1": "cnk12345",
+  "PowerMate-ESP32-001": "deviceSecret1", // Added your ESP32's device ID and secret
   // Add more devices as needed
 };
 
 const authenticateDevice = async (req, res) => {
   try {
     const { deviceId, deviceSecret } = req.body;
+
+    console.log("Authentication attempt from device:", deviceId);
 
     // Validate device credentials
     if (!deviceId || !deviceSecret) {
