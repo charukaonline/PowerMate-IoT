@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 
-module.exports = (req, res, next) => {
+// Create a named function for better readability
+const authenticateDevice = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
@@ -26,3 +27,5 @@ module.exports = (req, res, next) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+module.exports = { authenticateDevice };

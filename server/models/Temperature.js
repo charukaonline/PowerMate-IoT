@@ -8,8 +8,9 @@ const temperatureSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-// Ensure only one document exists per device
-temperatureSchema.index({ deviceId: 1 }, { unique: true });
+// Create a compound index for device identification
+// This allows us to have unique records per deviceId+espDeviceId combination
+temperatureSchema.index({ deviceId: 1, espDeviceId: 1 }, { unique: true });
 
 const Temperature = mongoose.model("Temperature", temperatureSchema);
 

@@ -3,6 +3,11 @@ const DCPower = require("../models/DCPower");
 const Distance = require("../models/Distance");
 const Temperature = require("../models/Temperature");
 
+// Import history models
+const BatteryHistory = require("../models/BatteryHistory");
+const DCPowerHistory = require("../models/DCPowerHistory");
+const DistanceHistory = require("../models/DistanceHistory");
+
 // Database connection status tracking
 let dbConnected = !!process.env.MONGO_URI;
 
@@ -31,9 +36,17 @@ const storeSensorData = async (req, res) => {
     if (req.body.battery) {
       try {
         const batteryData = processBatteryData(req.body.battery);
-        // Since Battery model is designed to keep only the latest values
-        let batteryRecord = await Battery.findOne({ deviceId });
 
+        // Store in history collection
+        const batteryHistoryRecord = new BatteryHistory({
+          ...batteryData,
+          deviceId,
+          timestamp,
+        });
+        await batteryHistoryRecord.save();
+
+        // Update current state collection
+        let batteryRecord = await Battery.findOne({ deviceId });
         if (batteryRecord) {
           // Update existing record
           batteryRecord.voltage = batteryData.voltage;
@@ -51,7 +64,11 @@ const storeSensorData = async (req, res) => {
           await batteryRecord.save();
         }
 
-        results.battery = { success: true, data: batteryRecord };
+        results.battery = {
+          success: true,
+          data: batteryRecord,
+          history: batteryHistoryRecord,
+        };
       } catch (error) {
         results.battery = { success: false, error: error.message };
       }
@@ -61,9 +78,17 @@ const storeSensorData = async (req, res) => {
     if (req.body.dcPower) {
       try {
         const dcPowerData = processDCPowerData(req.body.dcPower);
-        // Since DCPower model is designed to keep only the latest values
-        let dcPowerRecord = await DCPower.findOne({ deviceId });
 
+        // Store in history collection
+        const dcPowerHistoryRecord = new DCPowerHistory({
+          ...dcPowerData,
+          deviceId,
+          timestamp,
+        });
+        await dcPowerHistoryRecord.save();
+
+        // Update current state collection
+        let dcPowerRecord = await DCPower.findOne({ deviceId });
         if (dcPowerRecord) {
           // Update existing record
           dcPowerRecord.voltage = dcPowerData.voltage;
@@ -80,7 +105,11 @@ const storeSensorData = async (req, res) => {
           await dcPowerRecord.save();
         }
 
-        results.dcPower = { success: true, data: dcPowerRecord };
+        results.dcPower = {
+          success: true,
+          data: dcPowerRecord,
+          history: dcPowerHistoryRecord,
+        };
       } catch (error) {
         results.dcPower = { success: false, error: error.message };
       }
@@ -90,9 +119,17 @@ const storeSensorData = async (req, res) => {
     if (req.body.distance) {
       try {
         const distanceData = processDistanceData(req.body.distance);
-        // Since Distance model is now designed to keep only the latest values
-        let distanceRecord = await Distance.findOne({ deviceId });
 
+        // Store in history collection
+        const distanceHistoryRecord = new DistanceHistory({
+          ...distanceData,
+          deviceId,
+          timestamp,
+        });
+        await distanceHistoryRecord.save();
+
+        // Update current state collection
+        let distanceRecord = await Distance.findOne({ deviceId });
         if (distanceRecord) {
           // Update existing record
           distanceRecord.distance = distanceData.distance;
@@ -108,7 +145,11 @@ const storeSensorData = async (req, res) => {
           await distanceRecord.save();
         }
 
-        results.distance = { success: true, data: distanceRecord };
+        results.distance = {
+          success: true,
+          data: distanceRecord,
+          history: distanceHistoryRecord,
+        };
       } catch (error) {
         results.distance = { success: false, error: error.message };
       }
@@ -136,15 +177,23 @@ const storeTempData = async (req, res) => {
     console.log("Received temperature data:", req.body);
     const timestamp = new Date();
 
-    // Get deviceId from payload if available, otherwise use the one from auth middleware
+    // Get deviceId from payload - for ESP32 temperature sensors, we may have a different format
+    // Check for esp32ID, espDeviceId, or fall back to regular deviceId
+    const espDeviceId = req.body.esp32ID || req.body.espDeviceId || null;
     const deviceId = req.body.deviceId || req.deviceId || "unknown";
-    console.log(`Processing temperature data for device: ${deviceId}`);
+
+    console.log(
+      `Processing temperature data for device: ${deviceId}, ESP: ${
+        espDeviceId || "none"
+      }`
+    );
 
     // Check if we're in DB-less mode
     if (!dbConnected && !process.env.MONGO_URI) {
       return res.status(200).json({
         message: "Temperature data received (DB storage disabled)",
         deviceId,
+        espDeviceId,
         timestamp,
         data: req.body,
       });
@@ -152,9 +201,15 @@ const storeTempData = async (req, res) => {
 
     try {
       const temperatureData = processTemperatureData(req.body);
-      // Temperature model is designed to have only one document per device
-      let temperatureRecord = await Temperature.findOne({ deviceId });
 
+      // Update current state collection
+      // For temperature sensors, we need to check both deviceId and espDeviceId
+      let query = { deviceId };
+      if (espDeviceId) {
+        query.espDeviceId = espDeviceId;
+      }
+
+      let temperatureRecord = await Temperature.findOne(query);
       if (temperatureRecord) {
         // Update existing record
         temperatureRecord.temperatureC = temperatureData.temperatureC;
@@ -167,6 +222,7 @@ const storeTempData = async (req, res) => {
         temperatureRecord = new Temperature({
           ...temperatureData,
           deviceId,
+          espDeviceId,
           timestamp,
         });
         await temperatureRecord.save();
@@ -175,6 +231,7 @@ const storeTempData = async (req, res) => {
       return res.status(200).json({
         message: "Temperature data processed",
         deviceId,
+        espDeviceId,
         timestamp,
         data: temperatureRecord,
       });
@@ -309,40 +366,42 @@ function processTemperatureData(data) {
     humidity = 0;
 
   if (typeof data === "object") {
-    // Handle single temperature value (assuming Celsius by default)
-    if (data.temperature !== undefined) {
-      temperatureC = data.temperature;
-      // Convert to Fahrenheit: F = (C * 9/5) + 32
+    // Handle ESP32-specific temperature formats
+    // ESP32 often uses "temp" or "t" as shorthand
+    temperatureC =
+      data.temperature !== undefined
+        ? data.temperature
+        : data.temperatureC !== undefined
+        ? data.temperatureC
+        : data.celsius !== undefined
+        ? data.celsius
+        : data.temp_c !== undefined
+        ? data.temp_c
+        : data.temp !== undefined
+        ? data.temp
+        : data.t !== undefined
+        ? data.t
+        : data.tempC;
+
+    temperatureF =
+      data.temperatureF !== undefined
+        ? data.temperatureF
+        : data.fahrenheit !== undefined
+        ? data.fahrenheit
+        : data.temp_f !== undefined
+        ? data.temp_f
+        : data.tempF;
+
+    // If we have Celsius but not Fahrenheit, calculate it
+    if (temperatureC !== undefined && temperatureF === undefined) {
       temperatureF = (parseFloat(temperatureC) * 9) / 5 + 32;
-    } else {
-      temperatureC =
-        data.temperatureC !== undefined
-          ? data.temperatureC
-          : data.celsius !== undefined
-          ? data.celsius
-          : data.temp_c !== undefined
-          ? data.temp_c
-          : data.tempC;
-
-      temperatureF =
-        data.temperatureF !== undefined
-          ? data.temperatureF
-          : data.fahrenheit !== undefined
-          ? data.fahrenheit
-          : data.temp_f !== undefined
-          ? data.temp_f
-          : data.tempF;
-
-      // If we have Celsius but not Fahrenheit, calculate it
-      if (temperatureC !== undefined && temperatureF === undefined) {
-        temperatureF = (parseFloat(temperatureC) * 9) / 5 + 32;
-      }
-      // If we have Fahrenheit but not Celsius, calculate it
-      else if (temperatureF !== undefined && temperatureC === undefined) {
-        temperatureC = ((parseFloat(temperatureF) - 32) * 5) / 9;
-      }
+    }
+    // If we have Fahrenheit but not Celsius, calculate it
+    else if (temperatureF !== undefined && temperatureC === undefined) {
+      temperatureC = ((parseFloat(temperatureF) - 32) * 5) / 9;
     }
 
+    // ESP32 typically uses "hum" or "h" for humidity
     humidity =
       data.humidity !== undefined
         ? data.humidity
@@ -350,6 +409,8 @@ function processTemperatureData(data) {
         ? data.humid
         : data.hum !== undefined
         ? data.hum
+        : data.h !== undefined
+        ? data.h
         : 0;
   } else {
     throw new Error("Invalid temperature data format");
@@ -366,4 +427,60 @@ function processTemperatureData(data) {
   };
 }
 
-module.exports = { storeSensorData, storeTempData };
+// Add new functions to query historical data
+async function getBatteryHistory(deviceId, startTime, endTime, limit = 1000) {
+  const query = { deviceId };
+
+  if (startTime || endTime) {
+    query.timestamp = {};
+    if (startTime) query.timestamp.$gte = new Date(startTime);
+    if (endTime) query.timestamp.$lte = new Date(endTime);
+  }
+
+  return BatteryHistory.find(query).sort({ timestamp: -1 }).limit(limit);
+}
+
+async function getDCPowerHistory(deviceId, startTime, endTime, limit = 1000) {
+  const query = { deviceId };
+
+  if (startTime || endTime) {
+    query.timestamp = {};
+    if (startTime) query.timestamp.$gte = new Date(startTime);
+    if (endTime) query.timestamp.$lte = new Date(endTime);
+  }
+
+  return DCPowerHistory.find(query).sort({ timestamp: -1 }).limit(limit);
+}
+
+async function getDistanceHistory(deviceId, startTime, endTime, limit = 1000) {
+  const query = { deviceId };
+
+  if (startTime || endTime) {
+    query.timestamp = {};
+    if (startTime) query.timestamp.$gte = new Date(startTime);
+    if (endTime) query.timestamp.$lte = new Date(endTime);
+  }
+
+  return DistanceHistory.find(query).sort({ timestamp: -1 }).limit(limit);
+}
+
+// Function to get latest temperature data by deviceId and optionally espDeviceId
+async function getTemperatureData(deviceId, espDeviceId = null) {
+  const query = { deviceId };
+
+  // Add ESP device ID to query if provided
+  if (espDeviceId) {
+    query.espDeviceId = espDeviceId;
+  }
+
+  return Temperature.findOne(query).sort({ timestamp: -1 });
+}
+
+module.exports = {
+  storeSensorData,
+  storeTempData,
+  getBatteryHistory,
+  getDCPowerHistory,
+  getDistanceHistory,
+  getTemperatureData,
+};
