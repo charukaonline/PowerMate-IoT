@@ -88,6 +88,7 @@ app.get("/api/ping", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/sensor-data", sensorDataRoutes);
 app.use("/api/userAuth", userAuthRoutes);
+app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
