@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const cookieParser = require("cookie-parser"); // Add this import
 const connectDB = require("./config/db");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const authRoutes = require("./routes/authRoutes");
@@ -46,6 +47,9 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
+// Add cookie parser middleware
+app.use(cookieParser());
 
 app.use(express.json());
 

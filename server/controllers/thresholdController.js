@@ -3,6 +3,7 @@ const Threshold = require('../models/Threshold');
 // Get user's threshold settings
 const getUserThresholds = async (req, res) => {
     try {
+        // Get user ID from the authenticated user object
         const userId = req.user._id;
         
         // Find threshold settings for the user, or create default settings if none exist
