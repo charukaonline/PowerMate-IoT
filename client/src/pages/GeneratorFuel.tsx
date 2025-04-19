@@ -18,16 +18,9 @@ import {
   RadialBar,
   RadialBarChart,
 } from 'recharts';
-import { 
-  fuelLevelPercentage, 
-  fuelVolume, 
-  fuelLevelStatus, 
-  oilTemperature 
-} from '@/lib/mock-data';
-
-const radialChartData = [
-  { name: "Fuel Level", level: 78, fill: "var(--color-safari)" },
-]
+import { useEffect, useState } from 'react';
+import { useGeneratorStore } from '@/stores/generatorStore';
+import { oilTemperature } from '@/lib/mock-data';
 
 const chartConfig = {
   visitors: {
@@ -39,34 +32,47 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-
-
 const GeneratorFuel = () => {
-  // Generate mock data for fuel level history
-  const generateFuelHistory = () => {
-    const data = [];
-    const now = new Date();
-    const startLevel = fuelLevelPercentage + 15;
-    
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      
-      // Simulate fuel consumption
-      const level = Math.max(startLevel - (i * 0.5) - (Math.random() * 2), fuelLevelPercentage);
-      
-      data.push({
-        date: date.toISOString().split('T')[0],
-        level: Math.round(level),
-      });
-    }
-    
-    return data;
-  };
+  // Get data and actions from the generator store
+  const { 
+    fuelLevel, 
+    fuelVolume, 
+    tankCapacity, 
+    fuelLevelStatus, 
+    fuelHistory, 
+    loading, 
+    error, 
+    fetchFuelHistory 
+  } = useGeneratorStore();
 
-  const fuelHistory = generateFuelHistory();
+  // State for radial chart data
+  const [radialChartData, setRadialChartData] = useState([
+    { name: "Fuel Level", level: 78, fill: "var(--color-safari)" },
+  ]);
 
-  // Generate mock data for oil temperature
+  // Fetch fuel history when component mounts
+  useEffect(() => {
+    document.title = "PowerMate | Generator Fuel";
+    
+    // Get the date 30 days ago for the query
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    // Fetch fuel history data
+    fetchFuelHistory({
+      startDate: startDate.toISOString(),
+      limit: 100
+    });
+  }, [fetchFuelHistory]);
+
+  // Update radial chart data when fuelLevel changes
+  useEffect(() => {
+    setRadialChartData([
+      { name: "Fuel Level", level: fuelLevel, fill: "var(--color-safari)" }
+    ]);
+  }, [fuelLevel]);
+
+  // Generate mock data for oil temperature (keep this until you have real temperature data)
   const generateTemperatureData = () => {
     const data = [];
     const now = new Date();
@@ -96,8 +102,15 @@ const GeneratorFuel = () => {
     value: item.temperature,
   }));
 
-  // Calculate tank capacity based on current percentage and volume
-  const tankCapacity = Math.round((fuelVolume / fuelLevelPercentage) * 100);
+  // Show loading indicator when data is being fetched
+  if (loading && fuelHistory.length === 0) {
+    return <div className="flex justify-center items-center h-60">Loading fuel history data...</div>;
+  }
+
+  // Show error message if data fetch failed
+  if (error && fuelHistory.length === 0) {
+    return <div className="text-destructive">Error loading fuel data: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -110,7 +123,7 @@ const GeneratorFuel = () => {
             <GaugeIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="flex items-center justify-between">
-            <div className="text-2xl font-bold">{fuelLevelPercentage}%</div>
+            <div className="text-2xl font-bold">{fuelLevel}%</div>
             <StatusIndicator 
               status={fuelLevelStatus as "normal" | "warning" | "critical"} 
               label={fuelLevelStatus === "normal" ? "Normal" : fuelLevelStatus === "warning" ? "Warning" : "Critical"} 
@@ -125,7 +138,7 @@ const GeneratorFuel = () => {
         />
         <StatCard
           title="Estimated Runtime"
-          value={`${Math.round(fuelLevelPercentage / 3.5)}h`}
+          value={`${Math.round(fuelLevel / 3.5)}h`}
           icon={<GaugeIcon />}
           description="At current consumption"
         />
@@ -160,7 +173,7 @@ const GeneratorFuel = () => {
                   stroke="none"
                   className="first:fill-muted last:fill-background"
                   polarRadius={[86, 74]}
-                  color={radialChartData[0].level> 30 ? "success" : "warning"}
+                  color={radialChartData[0].level > 30 ? "success" : "warning"}
                 />
                 <RadialBar dataKey="level" background cornerRadius={10} />
                 <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
@@ -197,26 +210,15 @@ const GeneratorFuel = () => {
               </RadialBarChart>
             </ChartContainer>
           </CardContent>
-            {/* <div className="w-full space-y-2 px-10">
-              <div className="flex justify-between text-sm">
-                <span>Empty</span>
-                <span>Full</span>
-              </div>
-              <Progress value={fuelLevelPercentage} className="h-2" />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0L</span>
-                <span>{tankCapacity}L</span>
-              </div>
-            </div> */}
           <CardFooter className="flex-col gap-2 text-sm">
-          <div className="flex items-center gap-2 font-medium leading-none">
-            Running up for 5h <TrendingUp className="h-4 w-4" />
-          </div>
-          <div className="leading-none text-muted-foreground">
-            Showing total fuel level in the generator
-          </div>
-        </CardFooter>
-      </Card>
+            <div className="flex items-center gap-2 font-medium leading-none">
+              Running up for 5h <TrendingUp className="h-4 w-4" />
+            </div>
+            <div className="leading-none text-muted-foreground">
+              Showing total fuel level in the generator
+            </div>
+          </CardFooter>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -269,44 +271,54 @@ const GeneratorFuel = () => {
           <CardTitle>Fuel Level History (30 Days)</CardTitle>
         </CardHeader>
         <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={fuelHistory} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorFuel" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }} 
-                tickFormatter={(value) => value.split('-')[2]}
-                interval={Math.floor(fuelHistory.length / 20)}
-              />
-              <YAxis 
-                domain={[0, 100]} 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  borderColor: 'hsl(var(--border))' 
-                }}
-                labelStyle={{ color: 'hsl(var(--card-foreground))' }}
-                labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                formatter={(value) => [`${value}%`, 'Fuel Level']}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="level" 
-                stroke="hsl(var(--chart-4))" 
-                fillOpacity={1} 
-                fill="url(#colorFuel)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {fuelHistory.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={fuelHistory} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorFuel" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }} 
+                  tickFormatter={(value) => value.split('-')[2]}
+                  interval={Math.floor(fuelHistory.length / 20)}
+                />
+                <YAxis 
+                  domain={[0, 100]} 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    borderColor: 'hsl(var(--border))' 
+                  }}
+                  labelStyle={{ color: 'hsl(var(--card-foreground))' }}
+                  labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                  // Show both fuel level percentage and calculated height
+                  formatter={(value) => [
+                    `${value}%`, 
+                    'Fuel Level'
+                  ]}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="level" 
+                  stroke="hsl(var(--chart-4))" 
+                  fillOpacity={1} 
+                  fill="url(#colorFuel)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex justify-center items-center h-full text-muted-foreground">
+              No fuel history data available
+            </div>
+          )}
         </CardContent>
       </Card>
 

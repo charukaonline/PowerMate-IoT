@@ -7,9 +7,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/userA
 axios.defaults.withCredentials = true;
 
 interface User {
-  _id: string;  // Change from id to _id to match server response
-  email: string; // Add email field
-  name: string;  // Change from username to name to match server response
+  _id: string; 
+  email: string;
+  name: string; 
   isVerified: boolean;
   // Add other user properties as needed
 }
