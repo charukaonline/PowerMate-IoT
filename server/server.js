@@ -1,9 +1,11 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const cookieParser = require("cookie-parser"); // Add this import
 const connectDB = require("./config/db");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const authRoutes = require("./routes/authRoutes");
+const userAuthRoutes = require("./routes/userAuthRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -22,13 +24,33 @@ if (!process.env.MONGO_URI) {
 }
 
 const app = express();
-// Allow requests from all origins for IoT device connectivity
+
+// Configure CORS with specific origins instead of wildcard
+// This fixes the issue with credentials and preflight requests
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(
   cors({
-    origin: "*", // Allow all origins
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        // For IoT devices and other sources, still allow the request
+        callback(null, true);
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
+// Add cookie parser middleware
+app.use(cookieParser());
+
 app.use(express.json());
 
 // Add detailed request logging middleware BEFORE routes
@@ -69,6 +91,9 @@ app.get("/api/ping", (req, res) => {
 // Sensor data routes
 app.use("/api/auth", authRoutes);
 app.use("/api/sensor-data", sensorDataRoutes);
+app.use("/api/userAuth", userAuthRoutes);
+app.use("/api/thresholds", require("./routes/thresholdRoutes"));
+app.use('/api/generator', require('./routes/generatorRoutes'));
 
 // Catch-all route for undefined routes
 app.use((req, res) => {

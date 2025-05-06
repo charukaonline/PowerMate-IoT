@@ -12,7 +12,7 @@ const generateTimeSeriesData = (
 ) => {
   const data = [];
   const now = new Date();
-  
+
   for (let i = hours * 60; i >= 0; i -= interval) {
     const time = new Date(now.getTime() - i * 60000);
     data.push({
@@ -20,7 +20,7 @@ const generateTimeSeriesData = (
       value: randomValue(minValue, maxValue),
     });
   }
-  
+
   return data;
 };
 
@@ -106,6 +106,11 @@ export const settingsData = {
       warningVoltage: 11.8,
       criticalVoltage: 11.2,
       maxTemperature: 45,
+    },
+    temperature: {
+      normal: 70,
+      warning: 85,
+      critical: 95,
     },
   },
   tankCapacity: 200, // liters

@@ -7,9 +7,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/userA
 axios.defaults.withCredentials = true;
 
 interface User {
-  _id: string;  // Change from id to _id to match server response
-  email: string; // Add email field
-  name: string;  // Change from username to name to match server response
+  _id: string; 
+  email: string;
+  name: string; 
   isVerified: boolean;
   // Add other user properties as needed
 }
@@ -58,10 +58,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const response = await axios.post(`${API_URL}/login`, { email, password }, {
+        withCredentials: true
+      });
 
       // Save auth state in localStorage
       localStorage.setItem('isAuthenticated', 'true');
+
+      // Get token from response 
+      const token = response.data.token || '';
 
       // Safely extract user data from response
       let userData = response.data.user || {};
@@ -72,6 +77,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         email: userData.email || email, // Use provided email as fallback
         name: userData.name || '',
         isVerified: userData.isVerified === undefined ? true : userData.isVerified,
+        token: token, // Store token with user data for API calls
         // Include any other fields from the original response
         ...userData
       };
@@ -84,9 +90,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         user: userData,
         error: null,
         isLoading: false,
+        token: token
       });
-
-      return response.data;
     } catch (error: any) {
       set({ error: error.response?.data?.message || "Error logging in", isLoading: false });
       throw error;
