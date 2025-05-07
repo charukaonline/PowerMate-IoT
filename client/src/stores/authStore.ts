@@ -41,7 +41,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await axios.post<{ user: User, token: string }>(`${API_URL}/signup`, { email, password, name });
+      const response = await axios.post<{ user: User, token: string }>(`${API_URL}/userAuth/signup`, { email, password, name });
       set({
         user: response.data.user,
         isAuthenticated: true,
@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password }, {
+      const response = await axios.post(`${API_URL}/userAuth/login`, { email, password }, {
         withCredentials: true
       });
 
