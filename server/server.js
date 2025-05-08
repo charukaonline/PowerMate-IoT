@@ -7,6 +7,7 @@ const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const authRoutes = require("./routes/authRoutes");
 const userAuthRoutes = require("./routes/userAuthRoutes");
 const dcpowerHistoryRoutes = require("./routes/dcHistoryRoutes");
+const batteryHistoryRoutes = require("./routes/batteryHistoryRoutes");
 const helmet = require('helmet');
 
 
@@ -118,6 +119,7 @@ app.use("/api/userAuth", userAuthRoutes);
 app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 app.use('/api/generator', require('./routes/generatorRoutes'));
 app.use('/api/', dcpowerHistoryRoutes);
+app.use('/api/', batteryHistoryRoutes);
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
