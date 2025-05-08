@@ -8,7 +8,10 @@ const authRoutes = require("./routes/authRoutes");
 const userAuthRoutes = require("./routes/userAuthRoutes");
 const dcpowerHistoryRoutes = require("./routes/dcHistoryRoutes");
 const batteryHistoryRoutes = require("./routes/batteryHistoryRoutes");
+const currentFuelLevelRoutes = require("./routes/currentFuelLevelRoutes");
+const temperatureRoutes = require("./routes/temperatureRoutes");
 const helmet = require('helmet');
+
 
 
 // Load environment variables
@@ -120,6 +123,8 @@ app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 app.use('/api/generator', require('./routes/generatorRoutes'));
 app.use('/api/', dcpowerHistoryRoutes);
 app.use('/api/', batteryHistoryRoutes);
+app.use('/api/', currentFuelLevelRoutes);
+app.use('/api/', temperatureRoutes);
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
