@@ -6,9 +6,17 @@ const connectDB = require("./config/db");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const authRoutes = require("./routes/authRoutes");
 const userAuthRoutes = require("./routes/userAuthRoutes");
+const dcpowerHistoryRoutes = require("./routes/dcHistoryRoutes");
+const helmet = require('helmet');
+
 
 // Load environment variables
 dotenv.config();
+
+
+
+
+
 
 // Check for MongoDB URI
 if (!process.env.MONGO_URI) {
@@ -28,6 +36,21 @@ const app = express();
 // Configure CORS with specific origins instead of wildcard
 // This fixes the issue with credentials and preflight requests
 const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+
+app.use('/static', express.static('public'));
+
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc:  ["'self'"],        // only allow external JS from same origin
+    styleSrc:   ["'self'"],        // only allow external CSS from same origin
+    imgSrc:     ["'self'", "data:"],
+    connectSrc: ["'self'"],
+    fontSrc:    ["'self'"],
+    objectSrc:  ["'none'"],
+    upgradeInsecureRequests: [],
+  }
+}));
 
 app.use(
   cors({
@@ -94,6 +117,7 @@ app.use("/api/sensor-data", sensorDataRoutes);
 app.use("/api/userAuth", userAuthRoutes);
 app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 app.use('/api/generator', require('./routes/generatorRoutes'));
+app.use('/api/', dcpowerHistoryRoutes);
 
 // Catch-all route for undefined routes
 app.use((req, res) => {

@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RedirectAuthenticatedUser } from './components/RedirectAuthenticatedUser';
 import NotFound from './pages/NotFound';
+import PowerHistoryTable from "@/pages/DCPowerHistory.tsx";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -73,7 +74,7 @@ function App() {
           <Route path="/power-supply" element={
             <ProtectedRoute>
               <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                <PowerSupply />
+                <PowerHistoryTable />
               </Layout>
             </ProtectedRoute>
           } />
