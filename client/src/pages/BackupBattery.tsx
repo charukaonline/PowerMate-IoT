@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { Battery, Activity, Percent, Clock, Download, RefreshCw } from 'lucide-react';
+import { Battery, Activity, Percent, Clock, Download, RefreshCw, Moon, Sun } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Entry {
   _id: string;
@@ -34,8 +35,22 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
   const [error, setError] = useState('');
   const [timeRange, setTimeRange] = useState<'6h' | '24h' | '7d' | '30d'>('24h');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   const API_URL = `http://localhost:5000/api/battery-history/${deviceId}`;
+
+  // Initialize dark mode based on browser preference
+  useEffect(() => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDarkMode(prefersDark);
+
+    // Add listener for theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => setDarkMode(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   // Fetch data function
   const fetchData = async () => {
@@ -86,11 +101,11 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
 
   // Get status color
   const getStatusColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-emerald-500';
-    if (percentage >= 40) return 'text-yellow-500';
-    if (percentage >= 20) return 'text-orange-500';
-    return 'text-red-600';
+    if (percentage >= 80) return darkMode ? 'text-green-400' : 'text-green-600';
+    if (percentage >= 60) return darkMode ? 'text-emerald-400' : 'text-emerald-500';
+    if (percentage >= 40) return darkMode ? 'text-yellow-400' : 'text-yellow-500';
+    if (percentage >= 20) return darkMode ? 'text-orange-400' : 'text-orange-500';
+    return darkMode ? 'text-red-400' : 'text-red-600';
   };
 
   // Handle time range change
@@ -131,193 +146,295 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
     document.body.removeChild(a);
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 300, damping: 24 }
+    }
+  };
+
+  const chartVariants = {
+    hidden: { opacity: 0, scale: 0.98 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 25,
+        delay: 0.3
+      }
+    }
+  };
+
   if (loading) {
     return (
-        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className={`p-6 space-y-6 min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <div className="flex justify-between items-center">
-            <div className="h-8 bg-gray-200 animate-pulse rounded w-1/3"></div>
-            <div className="h-8 bg-gray-200 animate-pulse rounded w-1/4"></div>
+            <div className={`h-8 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} animate-pulse rounded w-1/3`}></div>
+            <div className={`h-8 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} animate-pulse rounded w-1/4`}></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-24 bg-gray-200 animate-pulse rounded"></div>
+                <div key={i} className={`h-24 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} animate-pulse rounded`}></div>
             ))}
           </div>
-          <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
-          <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
-          <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
+          <div className={`h-64 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} animate-pulse rounded`}></div>
+          <div className={`h-64 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} animate-pulse rounded`}></div>
+          <div className={`h-64 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} animate-pulse rounded`}></div>
         </div>
     );
   }
 
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+  };
+
   return (
-      <div className="p-4 md:p-6 space-y-6 bg-gray-50 min-h-screen">
+      <div className={`p-4 md:p-6 space-y-6 min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'}`}>
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+        >
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+            <h1 className={`text-2xl md:text-3xl font-bold flex items-center ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
               <Battery className="mr-2" size={28} /> Battery Dashboard
             </h1>
-            <p className="text-gray-500">Device: {deviceId}</p>
+            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Device: {deviceId}</p>
           </div>
 
           {/* Controls */}
           <div className="flex flex-wrap gap-2">
-            <div className="flex space-x-1 bg-white rounded-lg shadow p-1">
+            <div className={`flex space-x-1 rounded-lg shadow p-1 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
               {(['6h', '24h', '7d', '30d'] as const).map((range) => (
-                  <button
+                  <motion.button
                       key={range}
                       onClick={() => handleTimeRangeChange(range)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       className={`px-3 py-1 text-sm rounded-md transition ${
                           timeRange === range
-                              ? 'bg-blue-100 text-blue-700 font-medium'
-                              : 'hover:bg-gray-100'
+                              ? darkMode
+                                  ? 'bg-blue-900 text-blue-300 font-medium'
+                                  : 'bg-blue-100 text-blue-700 font-medium'
+                              : darkMode
+                                  ? 'hover:bg-gray-700'
+                                  : 'hover:bg-gray-100'
                       }`}
                   >
                     {range}
-                  </button>
+                  </motion.button>
               ))}
             </div>
 
-            <button
+            <motion.button
                 onClick={handleRefresh}
-                className="flex items-center px-3 py-1 bg-white rounded-lg shadow hover:bg-gray-50 transition"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center px-3 py-1 rounded-lg shadow transition ${
+                    darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                }`}
                 disabled={isRefreshing}
             >
               <RefreshCw size={16} className={`mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
                 onClick={exportData}
-                className="flex items-center px-3 py-1 bg-white rounded-lg shadow hover:bg-gray-50 transition"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center px-3 py-1 rounded-lg shadow transition ${
+                    darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                }`}
             >
               <Download size={16} className="mr-1" />
               Export
-            </button>
+            </motion.button>
+
+            <motion.button
+                onClick={toggleTheme}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center px-3 py-1 rounded-lg shadow transition ${
+                    darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'
+                }`}
+            >
+              {darkMode ? <Sun size={16} className="mr-1" /> : <Moon size={16} className="mr-1" />}
+              {darkMode ? 'Light' : 'Dark'}
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Error message */}
-        {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+        <AnimatePresence>
+          {error && (
+              <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`border-l-4 border-red-500 p-4 rounded ${darkMode ? 'bg-red-900/30' : 'bg-red-50'}`}
+              >
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className={`text-sm ${darkMode ? 'text-red-300' : 'text-red-700'}`}>{error}</p>
+                  </div>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-        )}
+              </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Current Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white shadow rounded-lg p-5">
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          <motion.div
+              variants={itemVariants}
+              className={`shadow rounded-lg p-5 transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+          >
             <div className="flex items-center">
-              <div className="flex-shrink-0 rounded-md p-3 bg-blue-50">
-                <Battery className="h-5 w-5 text-blue-600" />
+              <div className={`flex-shrink-0 rounded-md p-3 ${darkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+                <Battery className={`h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
               <div className="ml-5">
-                <p className="text-gray-500 text-sm font-medium">Voltage</p>
+                <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Voltage</p>
                 <div className="flex items-baseline">
-                  <p className="text-2xl font-bold text-gray-900">{latest.voltage.toFixed(2)}</p>
-                  <p className="ml-1 text-gray-500">V</p>
+                  <p className={`text-2xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{latest.voltage.toFixed(2)}</p>
+                  <p className={`ml-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>V</p>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white shadow rounded-lg p-5">
+          <motion.div
+              variants={itemVariants}
+              className={`shadow rounded-lg p-5 transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+          >
             <div className="flex items-center">
-              <div className="flex-shrink-0 rounded-md p-3 bg-purple-50">
-                <Activity className="h-5 w-5 text-purple-600" />
+              <div className={`flex-shrink-0 rounded-md p-3 ${darkMode ? 'bg-purple-900/30' : 'bg-purple-50'}`}>
+                <Activity className={`h-5 w-5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
               </div>
               <div className="ml-5">
-                <p className="text-gray-500 text-sm font-medium">Current</p>
+                <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Current</p>
                 <div className="flex items-baseline">
-                  <p className="text-2xl font-bold text-gray-900">{latest.current.toFixed(2)}</p>
-                  <p className="ml-1 text-gray-500">A</p>
+                  <p className={`text-2xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{latest.current.toFixed(2)}</p>
+                  <p className={`ml-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>A</p>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white shadow rounded-lg p-5">
+          <motion.div
+              variants={itemVariants}
+              className={`shadow rounded-lg p-5 transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+          >
             <div className="flex items-center">
-              <div className="flex-shrink-0 rounded-md p-3 bg-green-50">
-                <Percent className="h-5 w-5 text-green-600" />
+              <div className={`flex-shrink-0 rounded-md p-3 ${darkMode ? 'bg-green-900/30' : 'bg-green-50'}`}>
+                <Percent className={`h-5 w-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
               </div>
               <div className="ml-5">
-                <p className="text-gray-500 text-sm font-medium">Capacity</p>
+                <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Capacity</p>
                 <div className="flex items-baseline">
-                  <p className="text-2xl font-bold text-gray-900">{latest.percentage}</p>
-                  <p className="ml-1 text-gray-500">%</p>
+                  <p className={`text-2xl font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{latest.percentage}</p>
+                  <p className={`ml-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>%</p>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white shadow rounded-lg p-5">
+          <motion.div
+              variants={itemVariants}
+              className={`shadow rounded-lg p-5 transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+          >
             <div className="flex items-center">
-              <div className={`flex-shrink-0 rounded-md p-3 bg-${
-                  latest.percentage >= 60 ? 'green' :
-                      latest.percentage >= 20 ? 'yellow' : 'red'
-              }-50`}>
+              <div className={`flex-shrink-0 rounded-md p-3 ${
+                  darkMode
+                      ? latest.percentage >= 60 ? 'bg-green-900/30' : latest.percentage >= 20 ? 'bg-yellow-900/30' : 'bg-red-900/30'
+                      : latest.percentage >= 60 ? 'bg-green-50' : latest.percentage >= 20 ? 'bg-yellow-50' : 'bg-red-50'
+              }`}>
                 <Clock className={`h-5 w-5 ${getStatusColor(latest.percentage)}`} />
               </div>
               <div className="ml-5">
-                <p className="text-gray-500 text-sm font-medium">Status</p>
+                <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Status</p>
                 <div className="flex items-baseline">
                   <p className={`text-2xl font-bold ${getStatusColor(latest.percentage)}`}>
                     {getBatteryStatus(latest.percentage)}
                   </p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {formatDate(latest.timestamp)}
                 </p>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Unified Chart */}
-        <div className="bg-white shadow rounded-lg p-4 md:p-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4">Battery Performance Overview</h2>
+        <motion.div
+            variants={chartVariants}
+            initial="hidden"
+            animate="visible"
+            className={`shadow rounded-lg p-4 md:p-6 transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+        >
+          <h2 className={`text-lg font-medium mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Battery Performance Overview</h2>
           <div className="h-64 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#2d3748' : '#f0f0f0'} />
                 <XAxis
                     dataKey="time"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#cbd5e0' : '#4a5568' }}
                     tickLine={false}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: darkMode ? '#4a5568' : '#e5e7eb' }}
                 />
                 <YAxis
                     yAxisId="left"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#cbd5e0' : '#4a5568' }}
                     tickLine={false}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: darkMode ? '#4a5568' : '#e5e7eb' }}
                     domain={['dataMin - 0.5', 'dataMax + 0.5']}
                 />
                 <YAxis
                     yAxisId="right"
                     orientation="right"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#cbd5e0' : '#4a5568' }}
                     tickLine={false}
-                    axisLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: darkMode ? '#4a5568' : '#e5e7eb' }}
                     domain={[0, 100]}
                 />
                 <Tooltip
                     contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      backgroundColor: darkMode ? 'rgba(26, 32, 44, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                       borderRadius: '6px',
-                      borderColor: '#e5e7eb',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      borderColor: darkMode ? '#4a5568' : '#e5e7eb',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      color: darkMode ? '#e2e8f0' : 'inherit'
                     }}
                     labelStyle={{ fontWeight: 'bold' }}
                 />
@@ -331,7 +448,7 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                     type="monotone"
                     dataKey="voltage"
                     name="Voltage (V)"
-                    stroke="#0284c7"
+                    stroke={darkMode ? '#3b82f6' : '#0284c7'}
                     strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 6 }}
@@ -341,7 +458,7 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                     type="monotone"
                     dataKey="current"
                     name="Current (A)"
-                    stroke="#c026d3"
+                    stroke={darkMode ? '#d946ef' : '#c026d3'}
                     strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 6 }}
@@ -351,7 +468,7 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                     type="monotone"
                     dataKey="percentage"
                     name="Capacity (%)"
-                    stroke="#16a34a"
+                    stroke={darkMode ? '#10b981' : '#16a34a'}
                     strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 6 }}
@@ -359,43 +476,55 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Individual Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
           {[
-            { key: 'voltage', label: 'Voltage (V)', color: '#0284c7', bgColor: 'bg-blue-50' },
-            { key: 'current', label: 'Current (A)', color: '#c026d3', bgColor: 'bg-purple-50' },
-            { key: 'percentage', label: 'Capacity (%)', color: '#16a34a', bgColor: 'bg-green-50' }
+            { key: 'voltage', label: 'Voltage (V)', color: darkMode ? '#3b82f6' : '#0284c7', bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-50' },
+            { key: 'current', label: 'Current (A)', color: darkMode ? '#d946ef' : '#c026d3', bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-50' },
+            { key: 'percentage', label: 'Capacity (%)', color: darkMode ? '#10b981' : '#16a34a', bgColor: darkMode ? 'bg-green-900/30' : 'bg-green-50' }
           ].map(({ key, label, color, bgColor }) => (
-              <div key={key} className="bg-white shadow rounded-lg p-4">
+              <motion.div
+                  key={key}
+                  variants={itemVariants}
+                  className={`shadow rounded-lg p-4 transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+              >
                 <div className="flex items-center mb-3">
                   <div className={`p-2 rounded-md ${bgColor}`}>
                     <div className="h-3 w-3" style={{ backgroundColor: color }}></div>
                   </div>
-                  <h2 className="text-base font-medium text-gray-800 ml-2">{label}</h2>
+                  <h2 className={`text-base font-medium ml-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{label}</h2>
                 </div>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} stroke={darkMode ? '#4a5568' : undefined} />
                       <XAxis
                           dataKey="time"
-                          tick={{ fontSize: 11 }}
+                          tick={{ fontSize: 11, fill: darkMode ? '#cbd5e0' : '#4a5568' }}
                           tickLine={false}
                           minTickGap={20}
+                          axisLine={{ stroke: darkMode ? '#4a5568' : '#e5e7eb' }}
                       />
                       <YAxis
-                          tick={{ fontSize: 11 }}
+                          tick={{ fontSize: 11, fill: darkMode ? '#cbd5e0' : '#4a5568' }}
                           tickLine={false}
+                          axisLine={{ stroke: darkMode ? '#4a5568' : '#e5e7eb' }}
                           domain={key === 'percentage' ? [0, 100] : ['dataMin - 0.5', 'dataMax + 0.5']}
                       />
                       <Tooltip
                           contentStyle={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            backgroundColor: darkMode ? 'rgba(26, 32, 44, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                             borderRadius: '4px',
                             padding: '8px',
-                            fontSize: '12px'
+                            fontSize: '12px',
+                            color: darkMode ? '#e2e8f0' : 'inherit'
                           }}
                           formatter={(value: number) => [`${value}${key === 'percentage' ? '%' : key === 'voltage' ? 'V' : 'A'}`, '']}
                       />
@@ -410,77 +539,105 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Data Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-800">History Data</h2>
-            <span className="text-sm text-gray-500">{sorted.length} entries</span>
+        <motion.div
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            className={`shadow rounded-lg overflow-hidden transition-colors duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}
+        >
+          <div className={`p-4 flex justify-between items-center border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <h2 className={`text-lg font-medium ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>History Data</h2>
+            <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{sorted.length} entries</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className={`min-w-full divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              <thead className={darkMode ? 'bg-gray-900' : 'bg-gray-50'}>
               <tr>
                 {['Time', 'Voltage (V)', 'Current (A)', 'Capacity (%)', 'Timestamp'].map(header => (
                     <th
                         key={header}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                            darkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}
                     >
                       {header}
                     </th>
                 ))}
               </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-              {sorted.slice(-15).reverse().map(entry => (
-                  <tr key={entry._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(entry.timestamp).toLocaleTimeString([], {
-                        hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
-                      })}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {entry.voltage.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {entry.current.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm">
-                      <div className="flex items-center">
-                        <div className="w-16 bg-gray-200 rounded-full h-2.5 mr-2">
-                          <div
-                              className={`h-2.5 rounded-full ${
-                                  entry.percentage >= 80 ? 'bg-green-500' :
-                                      entry.percentage >= 60 ? 'bg-emerald-500' :
-                                          entry.percentage >= 40 ? 'bg-yellow-500' :
-                                              entry.percentage >= 20 ? 'bg-orange-500' : 'bg-red-500'
-                              }`}
-                              style={{ width: `${entry.percentage}%` }}
-                          ></div>
+              <tbody className={`${darkMode ? 'bg-gray-800 divide-y divide-gray-700' : 'bg-white divide-y divide-gray-200'}`}>
+              <AnimatePresence>
+                {sorted.slice(-15).reverse().map((entry, index) => (
+                    <motion.tr
+                        key={entry._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}
+                    >
+                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                        {new Date(entry.timestamp).toLocaleTimeString([], {
+                          hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+                        })}
+                      </td>
+                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                        {entry.voltage.toFixed(2)}
+                      </td>
+                      <td className={`px-6 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                        {entry.current.toFixed(2)}
+                      </td>
+                      <td className={`px-6 py-3 whitespace-nowrap text-sm`}>
+                        <div className="flex items-center">
+                          <div className={`w-16 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2.5 mr-2`}>
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${entry.percentage}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className={`h-2.5 rounded-full ${
+                                    entry.percentage >= 80 ? darkMode ? 'bg-green-400' : 'bg-green-500' :
+                                        entry.percentage >= 60 ? darkMode ? 'bg-emerald-400' : 'bg-emerald-500' :
+                                            entry.percentage >= 40 ? darkMode ? 'bg-yellow-400' : 'bg-yellow-500' :
+                                                entry.percentage >= 20 ? darkMode ? 'bg-orange-400' : 'bg-orange-500' :
+                                                    darkMode ? 'bg-red-400' : 'bg-red-500'
+                                }`}
+                            ></motion.div>
+                          </div>
+                          <span className={`${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>{entry.percentage}%</span>
                         </div>
-                        <span className="text-gray-900">{entry.percentage}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-xs text-gray-500">
-                      {entry.timestamp}
-                    </td>
-                  </tr>
-              ))}
+                      </td>
+                      <td className={`px-6 py-3 whitespace-nowrap text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {entry.timestamp}
+                      </td>
+                    </motion.tr>
+                ))}
+              </AnimatePresence>
               </tbody>
             </table>
             {sorted.length > 15 && (
-                <div className="px-6 py-3 border-t text-center">
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className={`px-6 py-3 border-t text-center ${darkMode ? 'border-gray-700' : 'border-t'}`}
+                >
+                  <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} text-sm font-medium`}
+                  >
                     Show all {sorted.length} entries
-                  </button>
-                </div>
+                  </motion.button>
+                </motion.div>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
   );
 };
