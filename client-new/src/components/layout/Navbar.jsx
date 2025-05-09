@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
-// import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/store/authStore';
 import {
     Menu,
     Bell,
@@ -21,7 +21,7 @@ import {
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     const { theme, setTheme } = useTheme();
-    // const { logout } = useAuthStore();
+    const { logout } = useAuthStore();
 
     const handleLogout = () => {
         logout();

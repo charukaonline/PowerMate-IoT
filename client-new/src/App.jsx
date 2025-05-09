@@ -1,28 +1,72 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Layout from './components/layout/Layout'
 import { ThemeProvider } from './components/ThemeProvider'
+import { Toaster } from '@/components/ui/toaster';
+import Login from './pages/Login'
+import { RedirectAuthenticatedUser } from './components/RedirectAuthenticatedUser'
+import { useAuthStore } from './store/authStore'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isCheckingAuth, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    // Add a timeout to prevent infinite loading
+    const authCheck = async () => {
+      try {
+        await Promise.race([
+          checkAuth(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+          )
+        ]);
+      } catch (error) {
+        console.error('Auth check timed out or failed:', error);
+      }
+    };
+
+    authCheck();
+  }, [checkAuth]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full inline-block mb-4"></div>
+          <p className=' text-white'>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <ThemeProvider defaultTheme="system" storageKey="ui-theme">
         <Routes>
 
+          <Route path='/auth/login' element={
+            <RedirectAuthenticatedUser>
+              <Login />
+            </RedirectAuthenticatedUser>
+          } />
+
           <Route
             path='/'
             element={
-              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                <Dashboard />
-              </Layout>
+              <ProtectedRoute>
+                <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
             }
           />
 
         </Routes>
+        <Toaster />
       </ThemeProvider>
     </>
   )
