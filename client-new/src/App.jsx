@@ -1,14 +1,30 @@
-import React from 'react'
-import { Button } from './components/ui/button'
+import React, { useState } from 'react'
+import { Route, Routes } from 'react-router-dom'
+import Dashboard from './pages/Dashboard'
+import Layout from './components/layout/Layout'
+import { ThemeProvider } from './components/ThemeProvider'
 
 function App() {
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
-    <div>
+    <>
+      <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+        <Routes>
 
-      <h1 className='text-center'>Hello world!</h1>
+          <Route
+            path='/'
+            element={
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <Dashboard />
+              </Layout>
+            }
+          />
 
-      <Button>Click me</Button>
-    </div>
+        </Routes>
+      </ThemeProvider>
+    </>
   )
 }
 
