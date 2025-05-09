@@ -35,11 +35,6 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
       icon: <Zap className="h-5 w-5" />,
     },
     {
-      title: 'Current Monitoring',
-      href: '/current-monitoring',
-      icon: <Activity className="h-5 w-5" />,
-    },
-    {
       title: 'Generator Fuel',
       href: '/generator-fuel',
       icon: <Gauge className="h-5 w-5" />,

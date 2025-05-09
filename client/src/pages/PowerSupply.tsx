@@ -21,6 +21,7 @@ import {
   maxVoltageData, 
   voltageStatus 
 } from '@/lib/mock-data';
+import DCDataCards from "@/pages/DCPowerCards.tsx";
 
 const PowerSupply = () => {
   // Format data for charts

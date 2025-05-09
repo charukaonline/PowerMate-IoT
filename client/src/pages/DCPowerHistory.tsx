@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
+import DCDataCards from "@/pages/DCPowerCards.tsx";
 
 interface PowerHistoryEntry {
     _id: string;
@@ -134,6 +135,8 @@ const PowerHistoryChart = () => {
 
     return (
         <div className={`${mainBgClass} min-h-screen transition-colors duration-300`}>
+            <DCDataCards />
+
             <div className="max-w-7xl mx-auto px-4 py-8">
                 <motion.div
                     className={`${cardBgClass} shadow-lg rounded-lg p-6 transition-colors duration-300`}
