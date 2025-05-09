@@ -26,6 +26,18 @@ async function fetchBatteryHistory(req, res) {
   }
 }
 
+async function fetchFullHistory(req, res) {
+  try {
+    const {deviceId} = req.params;
+    const data = await BatteryHistory.find({deviceId})
+        .sort({timestamp: -1});
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({message: 'Error fetching full battery history', error});
+  }
+}
+
 module.exports = {
   fetchBatteryHistory,
+  fetchFullHistory,
 };

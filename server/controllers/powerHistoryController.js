@@ -3,7 +3,7 @@ const DCPowerHistory = require('../models/DCPowerHistory');
 // Get all power history records with optional pagination and date filtering
 const getAllPowerHistory = async (req, res) => {
     try {
-        const {page = 1, limit = 10, startDate, endDate} = req.query;
+        const {page = 1, limit = 100, startDate, endDate} = req.query;
         const skip = (page - 1) * limit;
 
         let query = {};

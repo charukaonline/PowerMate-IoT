@@ -571,15 +571,16 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                 ))}
               </tr>
               </thead>
-              <tbody className={`${darkMode ? 'bg-gray-800 divide-y divide-gray-700' : 'bg-white divide-y divide-gray-200'}`}>
+              <tbody
+                  className={`${darkMode ? 'bg-gray-800 divide-y divide-gray-700' : 'bg-white divide-y divide-gray-200'}`}>
               <AnimatePresence>
-                {sorted.slice(-15).reverse().map((entry, index) => (
+                {sorted.slice(Math.max(sorted.length - 15, 0)).reverse().map((entry, index) => (
                     <motion.tr
                         key={entry._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ delay: index * 0.05 }}
+                        initial={{opacity: 0, y: 10}}
+                        animate={{opacity: 1, y: 0}}
+                        exit={{opacity: 0, y: -10}}
+                        transition={{delay: index * 0.05}}
                         className={darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}
                     >
                       <td className={`px-6 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
@@ -597,9 +598,9 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                         <div className="flex items-center">
                           <div className={`w-16 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2.5 mr-2`}>
                             <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${entry.percentage}%` }}
-                                transition={{ duration: 1, ease: "easeOut" }}
+                                initial={{width: 0}}
+                                animate={{width: `${entry.percentage}%`}}
+                                transition={{duration: 1, ease: "easeOut"}}
                                 className={`h-2.5 rounded-full ${
                                     entry.percentage >= 80 ? darkMode ? 'bg-green-400' : 'bg-green-500' :
                                         entry.percentage >= 60 ? darkMode ? 'bg-emerald-400' : 'bg-emerald-500' :
@@ -628,8 +629,9 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
                     className={`px-6 py-3 border-t text-center ${darkMode ? 'border-gray-700' : 'border-t'}`}
                 >
                   <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      whileHover={{scale: 1.05}}
+                      whileTap={{scale: 0.95}}
+                      onClick={() => window.location.href = "/full-battery-history"}
                       className={`${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} text-sm font-medium`}
                   >
                     Show all {sorted.length} entries
