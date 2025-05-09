@@ -97,4 +97,18 @@ const checkAuth = async (req, res) => {
     }
 }
 
-module.exports = { signup, login, logout, checkAuth };
+const myData = async (req, res) => {
+    try {
+        const user = await User.findById(req.userId).select("-password");
+        if (!user) {
+            return res.status(404).json({success: false, message: "User not found"});
+        }
+
+        res.status(200).json({success: true, user});
+    } catch (error) {
+        console.log("Error in myData", error);
+        res.status(400).json({success: false, message: error.message});
+    }
+}
+
+module.exports = {signup, login, logout, checkAuth, myData};

@@ -10,6 +10,7 @@ const dcpowerHistoryRoutes = require("./routes/dcHistoryRoutes");
 const batteryHistoryRoutes = require("./routes/batteryHistoryRoutes");
 const currentFuelLevelRoutes = require("./routes/currentFuelLevelRoutes");
 const temperatureRoutes = require("./routes/temperatureRoutes");
+const logoutRoutes = require("./routes/logoutRoutes");
 const helmet = require('helmet');
 
 
@@ -59,14 +60,12 @@ app.use(helmet.contentSecurityPolicy({
 app.use(
   cors({
     origin: function(origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl requests)
-      if (!origin) return callback(null, true);
-      
+      if (!origin) return callback(null, true); // allow non-origin requests
       if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
+        return callback(null, true);
       } else {
-        // For IoT devices and other sources, still allow the request
-        callback(null, true);
+        // Deny requests from unknown origins for security
+        return callback(new Error('Origin not allowed'), false);
       }
     },
     credentials: true,
@@ -125,6 +124,7 @@ app.use('/api/', dcpowerHistoryRoutes);
 app.use('/api/', batteryHistoryRoutes);
 app.use('/api/', currentFuelLevelRoutes);
 app.use('/api/', temperatureRoutes);
+app.use('/api/', logoutRoutes);
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
