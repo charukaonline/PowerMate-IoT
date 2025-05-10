@@ -94,6 +94,7 @@ app.use("/api/sensor-data", sensorDataRoutes);
 app.use("/api/userAuth", userAuthRoutes);
 app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 app.use('/api/generator', require('./routes/generatorRoutes'));
+app.use('/api/dc-power', require('./routes/dcPowerRoutes'));
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
