@@ -1,4 +1,3 @@
-// src/components/ui/stat-card.tsx
 import React, { ReactNode, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -63,12 +62,13 @@ export function StatCard({
         }
     }, [progress?.value, progress?.max]);
 
-    // Calculate bubbles for the animation
+    // Calculate bubbles for the animation - improved visibility
     const bubbles = Array(6).fill(0).map((_, i) => ({
-        size: Math.floor(Math.random() * 8) + 4, // 4-12px
-        left: `${Math.floor(Math.random() * 80) + 10}%`, // 10-90%
-        delay: Math.random() * 3, // 0-3s delay
-        duration: Math.random() * 3 + 3 // 3-6s duration
+        size: Math.floor(Math.random() * 8) + 4, // 4-12px - slightly larger
+        left: `${Math.floor(Math.random() * 85) + 5}%`, // 5-90%
+        delay: Math.random() * 5, // 0-5s delay
+        duration: Math.random() * 3 + 5, // 5-8s duration
+        opacity: Math.random() * 0.25 + 0.15 // 0.15-0.4 opacity - more visible
     }));
 
     return (
@@ -77,7 +77,7 @@ export function StatCard({
             {progress && (
                 <div
                     className={cn(
-                        "absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out",
+                        "absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out overflow-hidden",
                         isInitialized ? "transition-all duration-1000 ease-out" : ""
                     )}
                     style={{
@@ -89,27 +89,38 @@ export function StatCard({
                         "absolute inset-0 w-full h-full",
                         progress.color
                     )}>
-                        {/* Animated waves */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 animate-[wave_2s_ease-in-out_infinite]" />
-                        <div className="absolute top-2 left-0 right-0 h-1 bg-white/10"
+                        {/* Subtle surface gradient */}
+                        <div
+                            className="absolute inset-x-0 top-0 h-[8%] bg-gradient-to-b from-white/20 to-transparent"
+                        />
+
+                        {/* Cleaner, more subtle animated waves */}
+                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/15"
                              style={{
-                                 animation: "wave 2.5s ease-in-out infinite",
-                                 animationDelay: "0.5s"
+                                 animation: "professionalWave 4s ease-in-out infinite",
+                                 transformOrigin: "center"
+                             }}
+                        />
+                        <div className="absolute top-[4px] left-0 right-0 h-[1px] bg-white/10"
+                             style={{
+                                 animation: "professionalWave 4s ease-in-out infinite",
+                                 animationDelay: "1s"
                              }}
                         />
 
-                        {/* Bubbles animation */}
+                        {/* More visible bubbles animation */}
                         {bubbles.map((bubble, index) => (
                             <div
                                 key={index}
-                                className="absolute rounded-full bg-white/30 animate-[bubble_ease-in_forwards]"
+                                className="absolute rounded-full shadow-sm"
                                 style={{
                                     width: `${bubble.size}px`,
                                     height: `${bubble.size}px`,
                                     left: bubble.left,
-                                    bottom: '-20%',
-                                    opacity: 0,
-                                    animation: `bubble ${bubble.duration}s ease-in infinite`,
+                                    bottom: '-10%',
+                                    background: `radial-gradient(circle at 30% 30%, rgba(255, 255, 255, ${bubble.opacity + 0.1}), rgba(255, 255, 255, ${bubble.opacity}))`,
+                                    boxShadow: `0 0 2px rgba(255, 255, 255, 0.1)`,
+                                    animation: `visibleBubble ${bubble.duration}s ease-out infinite`,
                                     animationDelay: `${bubble.delay}s`
                                 }}
                             />
