@@ -21,6 +21,7 @@ import RegisterForm from "@/pages/Register.tsx";
 import ProfilePage from "@/pages/UserProfile.tsx";
 import BatteryHistoryDashboard from "@/pages/BackupBattery";
 import FullBatteryHistory from "@/pages/FullBatteryHistory.tsx";
+import {DashboardSummary} from "@/pages/DashboardSummary.tsx";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -71,7 +72,7 @@ function App() {
           <Route path="/" element={
             <ProtectedRoute>
               <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                <Dashboard />
+                <DashboardSummary />
               </Layout>
             </ProtectedRoute>
           } />
