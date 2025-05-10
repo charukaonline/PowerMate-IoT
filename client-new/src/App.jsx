@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import { RedirectAuthenticatedUser } from './components/RedirectAuthenticatedUser'
 import { useAuthStore } from './store/authStore'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import PowerSupply from './pages/PowerSupply'
 
 function App() {
 
@@ -60,6 +61,61 @@ function App() {
               <ProtectedRoute>
                 <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
                   <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path='/power-supply'
+            element={
+              <ProtectedRoute>
+                <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <PowerSupply />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path='/backup-battery'
+            element={
+              <ProtectedRoute>
+                <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <div>Backup Battery</div>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path='/generator-fuel'
+            element={
+              <ProtectedRoute>
+                <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <div>Generator Fuel</div>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path='/settings'
+            element={
+              <ProtectedRoute>
+                <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <div>Settings</div>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path='/profile'
+            element={
+              <ProtectedRoute>
+                <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                  <div>Profile</div>
                 </Layout>
               </ProtectedRoute>
             }

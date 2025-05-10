@@ -30,19 +30,14 @@ const Sidebar = ({ open, setOpen }) => {
             icon: <Zap className="h-5 w-5" />,
         },
         {
-            title: 'Current Monitoring',
-            href: '/current-monitoring',
-            icon: <Activity className="h-5 w-5" />,
+            title: 'Backup Battery',
+            href: '/backup-battery',
+            icon: <Battery className="h-5 w-5" />,
         },
         {
             title: 'Generator Fuel',
             href: '/generator-fuel',
             icon: <Gauge className="h-5 w-5" />,
-        },
-        {
-            title: 'Backup Battery',
-            href: '/backup-battery',
-            icon: <Battery className="h-5 w-5" />,
         },
         {
             title: 'Settings',
