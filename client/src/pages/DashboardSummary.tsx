@@ -271,7 +271,7 @@ export function DashboardSummary() {
                 </div>
             ),
             icon: <History />,
-            description: 'Historical voltage data',
+            description: 'Based on Historical voltage data',
             progress: {
                 value: normalizeValue(avgVoltage, minVoltage, maxVoltage),
                 max: 100,
