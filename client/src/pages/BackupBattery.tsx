@@ -205,7 +205,7 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
   };
 
   return (
-      <div className={`p-4 md:p-6 space-y-6 min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'}`}>
+      <div className={`p-4 md:p-6 space-y-6 min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'}`  } style={{borderRadius: '1rem'}}>
         {/* Header */}
         <motion.div
             initial={{ opacity: 0, y: -20 }}

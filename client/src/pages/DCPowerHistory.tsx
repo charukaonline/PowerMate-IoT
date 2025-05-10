@@ -230,7 +230,7 @@ const PowerHistoryChart = () => {
     );
 
     return (
-        <div className={`${mainBgClass} min-h-screen transition-colors duration-300`}>
+        <div className={`${mainBgClass} min-h-screen transition-colors duration-300`} style={{borderRadius: '1rem'}}>
             <DCDataCards />
 
             <div className="max-w-7xl mx-auto px-4 py-8">
