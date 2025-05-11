@@ -10,52 +10,115 @@ import { Skeleton } from '@/components/ui/skeleton'
 import useDCPowerStore from '@/store/dcPowerStore'
 
 const PowerSupply = () => {
-    const { 
+    const {
         currentData, isLoadingCurrent, currentError,
-        historyData, isLoadingHistory, historyError, 
+        historyData, isLoadingHistory, historyError,
         chartData, isLoadingChart, chartError,
         fetchCurrentData, fetchHistoryData, fetchChartData
     } = useDCPowerStore();
 
     const [deviceId, setDeviceId] = useState('PM-2405');
-    
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const recordsPerPage = 10;
+
+    // Add filter state and options
+    const [selectedFilter, setSelectedFilter] = useState('24h');
+
+    const filterOptions = [
+        { label: 'Last 24 Hours', value: '24h', days: 1 },
+        { label: 'Last 7 Days', value: '7d', days: 7 },
+        { label: 'Last Week', value: 'week', days: 7 },
+        { label: 'Last Month', value: 'month', days: 30 },
+    ];
+
+    // Calculate date range based on selected filter
+    const getDateRange = (filterValue) => {
+        const endDate = new Date();
+        const startDate = new Date();
+
+        const filter = filterOptions.find(option => option.value === filterValue);
+        if (filter) {
+            startDate.setDate(startDate.getDate() - filter.days);
+        } else {
+            // Default to 24 hours
+            startDate.setDate(startDate.getDate() - 1);
+        }
+
+        return {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+        };
+    };
+
     useEffect(() => {
         document.title = "Power Mate | Power Supply"
-        
+
         fetchCurrentData();
-        fetchHistoryData({ limit: 10 });
-        fetchChartData();
-        
+
+        // Get date range based on selected filter
+        const { startDate, endDate } = getDateRange(selectedFilter);
+
+        fetchHistoryData({
+            page: currentPage,
+            limit: recordsPerPage,
+            startDate,
+            endDate
+        });
+
+        fetchChartData({
+            deviceId,
+            startDate,
+            endDate
+        });
+
         // Set up polling for real-time updates
         const intervalId = setInterval(() => {
             fetchCurrentData();
-        }, 30000);
-        
-        return () => clearInterval(intervalId);
-    }, [fetchCurrentData, fetchHistoryData, fetchChartData]);
+        }, 10000);
 
-    // Get latest reading for display cards
+        return () => clearInterval(intervalId);
+    }, [fetchCurrentData, fetchHistoryData, fetchChartData, currentPage, selectedFilter, deviceId]);
+
+    useEffect(() => {
+        if (historyData.length > 0) {
+            const totalPagesFromAPI = useDCPowerStore.getState().totalPages;
+            if (totalPagesFromAPI > 0) {
+                setTotalPages(totalPagesFromAPI);
+            }
+        }
+    }, [historyData]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    // Handle filter change
+    const handleFilterChange = (filterValue) => {
+        setSelectedFilter(filterValue);
+        // Reset to first page when filter changes
+        setCurrentPage(1);
+    };
+
     const latestReading = currentData.length > 0 ? currentData[0] : null;
 
     const calculateVoltagePercentage = (voltage) => {
-        // Assuming normal range is 10.5V-12.5V
         if (!voltage) return 50;
         const min = 10.5;
         const max = 12.5;
         const percentage = ((voltage - min) / (max - min)) * 100;
-        return Math.min(Math.max(percentage, 0), 100); // Clamp between 0-100
+        return Math.min(Math.max(percentage, 0), 100);
     }
-    
-    // Calculate current percentage for progress bar
+
     const calculateCurrentPercentage = (current) => {
-        // Assuming max is 4.2A
         if (!current) return 60;
         const max = 4.2;
         const percentage = (current / max) * 100;
-        return Math.min(percentage, 100); // Clamp to max 100
+        return Math.min(percentage, 100);
     }
-    
-    // Custom tooltip formatter for voltage/current chart
+
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
@@ -69,10 +132,9 @@ const PowerSupply = () => {
         return null;
     };
 
-    // Function to export history data as CSV
     const exportToCSV = () => {
         if (historyData.length === 0) return;
-        
+
         const headers = ['Device ID', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Timestamp'];
         const csvData = historyData.map(record => [
             record.deviceId,
@@ -81,12 +143,12 @@ const PowerSupply = () => {
             record.power,
             new Date(record.timestamp).toLocaleString()
         ]);
-        
+
         const csvContent = [
             headers.join(','),
             ...csvData.map(row => row.join(','))
         ].join('\n');
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -105,7 +167,25 @@ const PowerSupply = () => {
                     <span>{currentError}</span>
                 </div>
             )}
-            
+
+            {/* Add time period filter UI */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-2xl font-bold">Power Supply Dashboard</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Time period:</span>
+                    {filterOptions.map((option) => (
+                        <Button
+                            key={option.value}
+                            variant={selectedFilter === option.value ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleFilterChange(option.value)}
+                        >
+                            {option.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 <Card className="w-full">
                     <CardHeader>
@@ -123,9 +203,9 @@ const PowerSupply = () => {
                                 )}
                             </h1>
                         </div>
-                        <Progress 
-                            value={calculateVoltagePercentage(latestReading?.voltage)} 
-                            className="h-2" 
+                        <Progress
+                            value={calculateVoltagePercentage(latestReading?.voltage)}
+                            className="h-2"
                         />
                     </CardContent>
                     <CardFooter className="flex justify-between">
@@ -149,9 +229,9 @@ const PowerSupply = () => {
                                 )}
                             </h1>
                         </div>
-                        <Progress 
-                            value={calculateCurrentPercentage(latestReading?.current)} 
-                            className="h-2" 
+                        <Progress
+                            value={calculateCurrentPercentage(latestReading?.current)}
+                            className="h-2"
                         />
                     </CardContent>
                     <CardFooter className="flex justify-between">
@@ -189,7 +269,11 @@ const PowerSupply = () => {
             <Card className="w-full">
                 <CardHeader>
                     <CardTitle>Voltage and Current over time</CardTitle>
-                    <CardDescription>24-hour monitoring data</CardDescription>
+                    <CardDescription>
+                        {selectedFilter === '24h' ? '24-hour' :
+                            selectedFilter === '7d' ? '7-day' :
+                                selectedFilter === 'week' ? 'Weekly' : 'Monthly'} monitoring data
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[400px]">
                     {isLoadingChart && chartData.length === 0 ? (
@@ -252,7 +336,11 @@ const PowerSupply = () => {
             <Card className="w-full">
                 <CardHeader>
                     <CardTitle>Power Consumption over time</CardTitle>
-                    <CardDescription>24-hour power usage trend</CardDescription>
+                    <CardDescription>
+                        {selectedFilter === '24h' ? '24-hour' :
+                            selectedFilter === '7d' ? '7-day' :
+                                selectedFilter === 'week' ? 'Weekly' : 'Monthly'} power usage trend
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[400px]">
                     {isLoadingChart && chartData.length === 0 ? (
@@ -272,7 +360,6 @@ const PowerSupply = () => {
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
-                                // Use the store's chart data, which already includes power values from the backend
                                 data={chartData.length > 0 ? chartData : [
                                     { time: '00:00', power: 23.5 },
                                     { time: '06:00', power: 29.4 },
@@ -327,16 +414,19 @@ const PowerSupply = () => {
                 </CardFooter>
             </Card>
 
-            {/* Records Section */}
             <Card className="w-full">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle>Power Supply Records</CardTitle>
-                        <CardDescription>Historical data of power supply measurements</CardDescription>
+                        <CardDescription>
+                            Historical data for the {selectedFilter === '24h' ? 'last 24 hours' :
+                                selectedFilter === '7d' ? 'last 7 days' :
+                                    selectedFilter === 'week' ? 'last week' : 'last month'}
+                        </CardDescription>
                     </div>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
+                    <Button
+                        variant="outline"
+                        size="sm"
                         className="flex items-center gap-1"
                         onClick={exportToCSV}
                         disabled={historyData.length === 0 || isLoadingHistory}
@@ -392,13 +482,25 @@ const PowerSupply = () => {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <div className="text-sm text-muted-foreground">
-                        Showing {historyData.length} of {historyData.length} records
+                        {historyData.length > 0
+                            ? `Showing page ${currentPage} of ${totalPages}`
+                            : 'No records to display'}
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" disabled>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage <= 1 || isLoadingHistory}
+                        >
                             Previous
                         </Button>
-                        <Button variant="outline" size="sm" disabled>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage >= totalPages || isLoadingHistory}
+                        >
                             Next
                         </Button>
                     </div>

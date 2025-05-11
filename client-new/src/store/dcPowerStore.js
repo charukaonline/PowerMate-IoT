@@ -79,11 +79,15 @@ const useDCPowerStore = create((set, get) => ({
     }
   },
   
-  // Fetch chart data (24-hour)
-  fetchChartData: async (deviceId = null) => {
+  // Fetch chart data (with date range filtering)
+  fetchChartData: async ({ deviceId = null, startDate = null, endDate = null } = {}) => {
     set({ isLoadingChart: true, chartError: null });
     try {
-      const params = deviceId ? { deviceId } : {};
+      const params = {};
+      if (deviceId) params.deviceId = deviceId;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      
       const response = await axios.get(`${API_URL}/dc-power/chart`, { params });
       
       if (response.data.success) {

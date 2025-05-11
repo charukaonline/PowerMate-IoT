@@ -137,21 +137,77 @@ exports.saveData = async (req, res) => {
     }
 };
 
-// Get aggregated data for charts (hourly averages for last 24 hours)
+// Get aggregated data for charts with flexible time range
 exports.getChartData = async (req, res) => {
     try {
-        const { deviceId } = req.query;
+        const { deviceId, startDate, endDate } = req.query;
 
-        // Get data from the last 24 hours
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-        let query = { timestamp: { $gte: oneDayAgo } };
+        // Build date range query
+        let query = {};
         if (deviceId) query.deviceId = deviceId;
 
-        // Aggregate by hour
-        const chartData = await DCPowerHistory.aggregate([
-            { $match: query },
-            {
+        if (startDate || endDate) {
+            query.timestamp = {};
+            if (startDate) query.timestamp.$gte = new Date(startDate);
+            if (endDate) query.timestamp.$lte = new Date(endDate);
+        } else {
+            // Default to last 24 hours if no date range specified
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            query.timestamp = { $gte: oneDayAgo };
+        }
+
+        // Determine appropriate grouping based on date range
+        let groupInterval = 'hour'; // Default to hour grouping
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const dayDiff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+            
+            if (dayDiff > 14) {
+                groupInterval = 'day'; // Group by day for longer ranges
+            } else if (dayDiff > 2) {
+                groupInterval = 'hour4'; // 4-hour intervals for medium ranges
+            }
+        }
+
+        // Set up grouping based on interval
+        let groupStage;
+        if (groupInterval === 'day') {
+            groupStage = {
+                $group: {
+                    _id: {
+                        year: { $year: "$timestamp" },
+                        month: { $month: "$timestamp" },
+                        day: { $dayOfMonth: "$timestamp" }
+                    },
+                    deviceId: { $first: "$deviceId" },
+                    avgVoltage: { $avg: "$voltage" },
+                    avgCurrent: { $avg: "$current" },
+                    count: { $sum: 1 }
+                }
+            };
+        } else if (groupInterval === 'hour4') {
+            groupStage = {
+                $group: {
+                    _id: {
+                        year: { $year: "$timestamp" },
+                        month: { $month: "$timestamp" },
+                        day: { $dayOfMonth: "$timestamp" },
+                        hour: { 
+                            $subtract: [
+                                { $hour: "$timestamp" },
+                                { $mod: [{ $hour: "$timestamp" }, 4] }
+                            ]
+                        }
+                    },
+                    deviceId: { $first: "$deviceId" },
+                    avgVoltage: { $avg: "$voltage" },
+                    avgCurrent: { $avg: "$current" },
+                    count: { $sum: 1 }
+                }
+            };
+        } else { // hourly grouping
+            groupStage = {
                 $group: {
                     _id: {
                         year: { $year: "$timestamp" },
@@ -164,7 +220,13 @@ exports.getChartData = async (req, res) => {
                     avgCurrent: { $avg: "$current" },
                     count: { $sum: 1 }
                 }
-            },
+            };
+        }
+
+        // Aggregate with appropriate grouping
+        const chartData = await DCPowerHistory.aggregate([
+            { $match: query },
+            groupStage,
             {
                 $project: {
                     _id: 0,
@@ -174,7 +236,7 @@ exports.getChartData = async (req, res) => {
                             year: "$_id.year",
                             month: "$_id.month",
                             day: "$_id.day",
-                            hour: "$_id.hour"
+                            hour: groupInterval === 'day' ? 0 : "$_id.hour"
                         }
                     },
                     voltage: { $round: ["$avgVoltage", 2] },
@@ -191,6 +253,7 @@ exports.getChartData = async (req, res) => {
         res.status(200).json({
             success: true,
             count: chartData.length,
+            grouping: groupInterval,
             data: chartData
         });
     } catch (error) {
