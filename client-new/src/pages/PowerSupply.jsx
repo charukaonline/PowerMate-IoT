@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import { Battery, Zap, CircuitBoard, Activity, Gauge, Download, AlertCircle } from 'lucide-react'
+import { Battery, Zap, CircuitBoard, Activity, Gauge, Download, AlertCircle, BellElectric, Plug } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -194,7 +194,7 @@ const PowerSupply = () => {
                     </CardHeader>
                     <CardContent className='flex flex-col gap-4 items-center justify-center'>
                         <div className='items-center justify-center text-center'>
-                            <Battery className="h-10 w-10 text-primary mx-auto" />
+                            <Plug className="h-10 w-10 text-primary mx-auto" />
                             <h1 className='text-xl font-bold mt-2'>
                                 {isLoadingCurrent && !latestReading ? (
                                     <Skeleton className="h-6 w-16 mx-auto" />

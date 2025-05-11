@@ -9,6 +9,7 @@ import { RedirectAuthenticatedUser } from './components/RedirectAuthenticatedUse
 import { useAuthStore } from './store/authStore'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import PowerSupply from './pages/PowerSupply'
+import BackupBattery from './pages/BackupBattery'
 
 function App() {
 
@@ -82,7 +83,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <div>Backup Battery</div>
+                  <BackupBattery />
                 </Layout>
               </ProtectedRoute>
             }
