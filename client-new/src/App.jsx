@@ -11,6 +11,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import PowerSupply from './pages/PowerSupply'
 import BackupBattery from './pages/BackupBattery'
 import GeneratorFuel from './pages/GeneratorFuel'
+import Settings from './pages/Settings'
 
 function App() {
 
@@ -106,7 +107,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <div>Settings</div>
+                  <Settings />
                 </Layout>
               </ProtectedRoute>
             }
