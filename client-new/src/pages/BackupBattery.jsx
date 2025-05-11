@@ -12,7 +12,9 @@ const BackupBattery = () => {
         currentData, isLoadingCurrent, currentError,
         historyData, isLoadingHistory, historyError, totalPages, currentPage,
         chartData, isLoadingChart, chartError,
-        fetchCurrentData, fetchHistoryData, fetchChartData
+        fetchCurrentData, fetchHistoryData, fetchChartData,
+        enableRealTimeUpdates, disableRealTimeUpdates,
+        startPolling, stopPolling, socketConnected
     } = useBackupBatteryStore();
 
     const [selectedFilter, setSelectedFilter] = useState('24h');
@@ -112,13 +114,13 @@ const BackupBattery = () => {
 
     // Initialize data on component mount
     useEffect(() => {
-        // Fetch current data for the metrics cards
+        console.log('Initializing BackupBattery component');
+        document.title = "Power Mate | Backup Battery";
+        
+        // Initial data fetch
         fetchCurrentData(defaultDeviceId);
         
-        // Get initial date range based on default filter for table only
         const { startDate, endDate } = getDateRange(selectedFilter);
-        
-        // Fetch historical data for the table with date range
         fetchHistoryData({ 
             deviceId: defaultDeviceId, 
             startDate, 
@@ -127,25 +129,25 @@ const BackupBattery = () => {
             limit: recordsPerPage 
         });
         
-        // Fetch chart data with no date filtering - show all data
-        fetchChartData({ deviceId: defaultDeviceId })
-            .then(data => {
-                console.log('Chart data fetched:', data); // Debug log
-                if (!data || data.length === 0) {
-                    console.warn('No chart data returned from API');
-                }
-            })
-            .catch(err => {
-                console.error('Error fetching chart data:', err);
-            });
+        fetchChartData({ deviceId: defaultDeviceId });
         
-        // Set up auto-refresh for real-time data every 30 seconds
-        const intervalId = setInterval(() => {
-            fetchCurrentData(defaultDeviceId);
-        }, 30000);
+        // Enable real-time updates via WebSockets
+        enableRealTimeUpdates(defaultDeviceId);
         
-        // Clean up interval on unmount
-        return () => clearInterval(intervalId);
+        // Also start polling as a fallback
+        const pollingId = startPolling(defaultDeviceId, 15000);
+        
+        // Log connection status after a short delay
+        setTimeout(() => {
+            console.log('Socket connected status:', socketConnected);
+        }, 3000);
+        
+        // Clean up on unmount
+        return () => {
+            console.log('Cleaning up BackupBattery component');
+            disableRealTimeUpdates();
+            stopPolling();
+        };
     }, []);
 
     // Show debugging info in component
@@ -178,6 +180,11 @@ const BackupBattery = () => {
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <h1 className="text-2xl font-bold">Backup Battery Dashboard</h1>
                 <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center text-xs px-2 py-1 rounded-full ${
+                        socketConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                        {socketConnected ? '● Live' : '○ Polling'}
+                    </span>
                     <span className="text-sm text-muted-foreground">Time period:</span>
                     {filterOptions.map((option) => (
                         <Button

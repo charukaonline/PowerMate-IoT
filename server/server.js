@@ -24,6 +24,17 @@ if (!process.env.MONGO_URI) {
 }
 
 const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+  cors: {
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Make io available globally
+app.set('socketio', io);
 
 // Configure CORS with specific origins instead of wildcard
 // This fixes the issue with credentials and preflight requests
@@ -61,6 +72,21 @@ app.use((req, res, next) => {
     console.log("Request Body:", JSON.stringify(req.body, null, 2));
   }
   next();
+});
+
+// Socket.IO connection handler
+io.on('connection', (socket) => {
+  console.log(`New client connected: ${socket.id}`);
+  
+  // Join device-specific rooms for targeted updates
+  socket.on('joinDeviceRoom', (deviceId) => {
+    console.log(`Client ${socket.id} joined room for device: ${deviceId}`);
+    socket.join(deviceId);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
+  });
 });
 
 // Root route to provide basic API information
@@ -113,7 +139,7 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
   console.log(
     `Server available at http://localhost:${PORT} and on your local network`

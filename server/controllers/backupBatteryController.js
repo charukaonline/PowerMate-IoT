@@ -141,6 +141,45 @@ exports.saveData = async (req, res) => {
             percentage
         });
 
+        // Determine status based on percentage
+        let status = 'Normal';
+        if (percentage < 20) {
+            status = 'Critical';
+        } else if (percentage < 40) {
+            status = 'Warning';
+        }
+
+        // Get the Socket.IO instance
+        const io = req.app.get('socketio');
+        
+        // Emit to all clients monitoring this device
+        if (io) {
+            // Add status to the data
+            const dataWithStatus = {
+                ...realTimeData.toObject(),
+                status,
+                power: (voltage * current).toFixed(2)
+            };
+            
+            console.log('Emitting battery update:', {
+                deviceId,
+                status,
+                voltage,
+                current,
+                percentage
+            });
+            
+            // Emit to device-specific room
+            io.to(deviceId).emit('batteryUpdate', dataWithStatus);
+            
+            // Also emit to a general battery updates channel
+            io.emit('batteryUpdates', dataWithStatus);
+            
+            console.log(`Emitted battery update for device ${deviceId}`);
+        } else {
+            console.warn('Socket.IO not available - real-time updates disabled');
+        }
+
         res.status(201).json({
             success: true,
             data: {
