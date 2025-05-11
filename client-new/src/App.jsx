@@ -10,6 +10,7 @@ import { useAuthStore } from './store/authStore'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import PowerSupply from './pages/PowerSupply'
 import BackupBattery from './pages/BackupBattery'
+import GeneratorFuel from './pages/GeneratorFuel'
 
 function App() {
 
@@ -94,7 +95,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                  <div>Generator Fuel</div>
+                  <GeneratorFuel />
                 </Layout>
               </ProtectedRoute>
             }
@@ -111,7 +112,7 @@ function App() {
             }
           />
 
-          <Route
+          {/* <Route
             path='/profile'
             element={
               <ProtectedRoute>
@@ -120,7 +121,7 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             }
-          />
+          /> */}
 
         </Routes>
         <Toaster />
