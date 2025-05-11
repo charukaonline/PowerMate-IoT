@@ -95,6 +95,7 @@ app.use("/api/userAuth", userAuthRoutes);
 app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 app.use('/api/generator', require('./routes/generatorRoutes'));
 app.use('/api/dc-power', require('./routes/dcPowerRoutes'));
+app.use('/api/backup-battery', require('./routes/backupBatteryRoutes'));
 
 // Catch-all route for undefined routes
 app.use((req, res) => {

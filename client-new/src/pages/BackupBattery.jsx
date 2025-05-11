@@ -1,19 +1,30 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Battery, Clock, Percent, Zap } from 'lucide-react'
+import { AlertCircle, Battery, Clock, Percent, Zap } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import useBackupBatteryStore from '@/store/backupBatteryStore'
 
 const BackupBattery = () => {
+    // Get data and actions from the store
+    const { 
+        currentData, isLoadingCurrent, currentError,
+        historyData, isLoadingHistory, historyError, totalPages, currentPage,
+        chartData, isLoadingChart, chartError,
+        fetchCurrentData, fetchHistoryData, fetchChartData
+    } = useBackupBatteryStore();
 
     const [selectedFilter, setSelectedFilter] = useState('24h');
-    const [isLoading, setIsLoading] = useState(true);
-    const [chartData, setChartData] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [tableData, setTableData] = useState([]);
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const recordsPerPage = 10;
+    
+    // Default device ID - could be from user settings or props
+    const defaultDeviceId = '88:13:BF:0C:3B:6C';
+
+    useEffect(() => {
+        document.title = 'Power Mate | Backup Battery'
+    })
 
     const filterOptions = [
         { label: 'Last 24 Hours', value: '24h', days: 1 },
@@ -22,91 +33,61 @@ const BackupBattery = () => {
         { label: 'Last Month', value: 'month', days: 30 },
     ];
 
-    // Function to handle filter change
+    // Function to handle filter change - now only affects table pagination, not charts
     const handleFilterChange = (filterValue) => {
         setSelectedFilter(filterValue);
-        fetchData(filterValue);
+        
+        // Get date range based on selected filter - only for history data table
+        const { startDate, endDate } = getDateRange(filterValue);
+        
+        // Reset pagination when filter changes
+        setTableCurrentPage(1);
+        fetchHistoryData({ 
+            deviceId: defaultDeviceId, 
+            startDate, 
+            endDate, 
+            page: 1, 
+            limit: recordsPerPage 
+        });
+        
+        // For charts, we'll continue to use all data, no filtering
     };
-
-    // Sample function to fetch data - replace with actual API call
-    const fetchData = (filterValue) => {
-        setIsLoading(true);
-
-        // Simulate API call with setTimeout
-        setTimeout(() => {
-            const sampleData = generateSampleData(filterValue);
-            setChartData(sampleData);
-            setIsLoading(false);
-        }, 1000);
-    };
-
-    // Generate sample data based on selected filter
-    const generateSampleData = (filterValue) => {
-        const data = [];
-        const filter = filterOptions.find(opt => opt.value === filterValue);
-        const points = filter.value === '24h' ? 24 : filter.value === '7d' ? 7 : 30;
-
-        for (let i = 0; i < points; i++) {
-            const baseVoltage = 11 + Math.random() * 1.5;
-            const baseCurrent = 2 + Math.random() * 2;
-            const basePercentage = 50 + Math.random() * 50;
-
-            data.push({
-                time: filter.value === '24h'
-                    ? `${i}:00`
-                    : `Day ${i + 1}`,
-                voltage: baseVoltage.toFixed(1),
-                current: baseCurrent.toFixed(1),
-                percentage: Math.round(basePercentage)
-            });
-        }
-
-        // Generate more data for the table (50 records in total)
-        const tableDataSet = [];
-        for (let i = 0; i < 50; i++) {
-            const baseVoltage = 11 + Math.random() * 1.5;
-            const baseCurrent = 2 + Math.random() * 2;
-            const basePercentage = Math.round(10 + Math.random() * 90); // Generate from 10% to 100%
-            
-            // Determine status based on battery percentage
-            let status;
-            if (basePercentage < 20) {
-                status = 'Critical'; // Critical for very low battery
-            } else if (basePercentage < 40) {
-                status = 'Warning'; // Warning for low battery
-            } else {
-                status = 'Normal'; // Normal for adequate battery levels
-            }
-            
-            tableDataSet.push({
-                id: i + 1,
-                time: new Date(Date.now() - i * 3600000).toLocaleString(),
-                voltage: baseVoltage.toFixed(1),
-                current: baseCurrent.toFixed(1),
-                percentage: basePercentage,
-                status: status
-            });
+    
+    // Calculate date range based on selected filter
+    const getDateRange = (filterValue) => {
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        const filter = filterOptions.find(option => option.value === filterValue);
+        if (filter) {
+            startDate.setDate(startDate.getDate() - filter.days);
+        } else {
+            // Default to 24 hours
+            startDate.setDate(startDate.getDate() - 1);
         }
         
-        // Set table data and calculate total pages
-        setTableData(tableDataSet);
-        setTotalPages(Math.ceil(tableDataSet.length / recordsPerPage));
-        
-        return data;
+        return {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+        };
     };
 
     // Add function to handle page changes
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
-            setCurrentPage(newPage);
+            setTableCurrentPage(newPage);
+            
+            // Get date range based on selected filter
+            const { startDate, endDate } = getDateRange(selectedFilter);
+            
+            fetchHistoryData({ 
+                deviceId: defaultDeviceId, 
+                startDate, 
+                endDate, 
+                page: newPage, 
+                limit: recordsPerPage 
+            });
         }
-    };
-
-    // Get current records for the table based on pagination
-    const getCurrentRecords = () => {
-        const startIndex = (currentPage - 1) * recordsPerPage;
-        const endIndex = startIndex + recordsPerPage;
-        return tableData.slice(startIndex, endIndex);
     };
 
     // Custom tooltip for the chart
@@ -124,13 +105,75 @@ const BackupBattery = () => {
         return null;
     };
 
+    // Get the latest battery reading for display cards
+    const getLatestReading = () => {
+        return currentData.length > 0 ? currentData[0] : null;
+    }
+
     // Initialize data on component mount
     useEffect(() => {
-        fetchData(selectedFilter);
+        // Fetch current data for the metrics cards
+        fetchCurrentData(defaultDeviceId);
+        
+        // Get initial date range based on default filter for table only
+        const { startDate, endDate } = getDateRange(selectedFilter);
+        
+        // Fetch historical data for the table with date range
+        fetchHistoryData({ 
+            deviceId: defaultDeviceId, 
+            startDate, 
+            endDate, 
+            page: tableCurrentPage, 
+            limit: recordsPerPage 
+        });
+        
+        // Fetch chart data with no date filtering - show all data
+        fetchChartData({ deviceId: defaultDeviceId })
+            .then(data => {
+                console.log('Chart data fetched:', data); // Debug log
+                if (!data || data.length === 0) {
+                    console.warn('No chart data returned from API');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching chart data:', err);
+            });
+        
+        // Set up auto-refresh for real-time data every 30 seconds
+        const intervalId = setInterval(() => {
+            fetchCurrentData(defaultDeviceId);
+        }, 30000);
+        
+        // Clean up interval on unmount
+        return () => clearInterval(intervalId);
     }, []);
+
+    // Show debugging info in component
+    useEffect(() => {
+        console.log('Chart data state:', chartData);
+    }, [chartData]);
+
+    // Get latest reading for card displays
+    const latestReading = getLatestReading();
+    
+    // Create fallback data if no chart data is available
+    const chartDataWithFallback = chartData && chartData.length > 0 ? chartData : [
+        { time: '00:00', voltage: 12.5, current: 2.1, percentage: 95 },
+        { time: '04:00', voltage: 12.3, current: 2.3, percentage: 90 },
+        { time: '08:00', voltage: 12.0, current: 2.5, percentage: 85 },
+        { time: '12:00', voltage: 11.8, current: 2.4, percentage: 80 },
+        { time: '16:00', voltage: 11.5, current: 2.2, percentage: 70 },
+        { time: '20:00', voltage: 11.2, current: 2.0, percentage: 60 }
+    ];
 
     return (
         <div className="space-y-6">
+            {currentError && (
+                <div className="bg-red-100 p-3 rounded-md border border-red-300 text-red-800 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    <span>{currentError}</span>
+                </div>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <h1 className="text-2xl font-bold">Backup Battery Dashboard</h1>
@@ -159,7 +202,11 @@ const BackupBattery = () => {
                         <div className='items-center justify-center text-center'>
                             <Battery className="h-10 w-10 text-primary mx-auto" />
                             <h1 className='text-xl font-bold mt-2'>
-                                <Skeleton className="h-6 w-16 mx-auto" />
+                                {isLoadingCurrent && !latestReading ? (
+                                    <Skeleton className="h-6 w-16 mx-auto" />
+                                ) : (
+                                    `${latestReading?.voltage?.toFixed(1) || '0.0'}V`
+                                )}
                             </h1>
                         </div>
                     </CardContent>
@@ -177,7 +224,11 @@ const BackupBattery = () => {
                         <div className='items-center justify-center text-center'>
                             <Zap className="h-10 w-10 text-amber-500 mx-auto" />
                             <h1 className='text-xl font-bold mt-2'>
-                                <Skeleton className="h-6 w-16 mx-auto" />
+                                {isLoadingCurrent && !latestReading ? (
+                                    <Skeleton className="h-6 w-16 mx-auto" />
+                                ) : (
+                                    `${latestReading?.current?.toFixed(1) || '0.0'}A`
+                                )}
                             </h1>
                         </div>
                     </CardContent>
@@ -193,9 +244,13 @@ const BackupBattery = () => {
                     </CardHeader>
                     <CardContent className='flex flex-col gap-4 items-center justify-center'>
                         <div className='items-center justify-center text-center'>
-                            <Percent className="h-10 w-10 text-amber-500 mx-auto" />
+                            <Percent className="h-10 w-10 text-green-500 mx-auto" />
                             <h1 className='text-xl font-bold mt-2'>
-                                <Skeleton className="h-6 w-16 mx-auto" />
+                                {isLoadingCurrent && !latestReading ? (
+                                    <Skeleton className="h-6 w-16 mx-auto" />
+                                ) : (
+                                    `${latestReading?.percentage || '0'}%`
+                                )}
                             </h1>
                         </div>
                     </CardContent>
@@ -213,37 +268,58 @@ const BackupBattery = () => {
                         <div className='items-center justify-center text-center'>
                             <Clock className="h-10 w-10 text-amber-500 mx-auto" />
                             <h1 className='text-xl font-bold mt-2'>
-                                <Skeleton className="h-6 w-16 mx-auto" />
+                                {isLoadingCurrent && !latestReading ? (
+                                    <Skeleton className="h-6 w-16 mx-auto" />
+                                ) : (
+                                    <span className={`px-3 py-1 rounded-full text-sm ${
+                                        !latestReading ? 'bg-gray-100 text-gray-800' :
+                                        latestReading.status === 'Normal' ? 'bg-green-100 text-green-800' :
+                                        latestReading.status === 'Warning' ? 'bg-amber-100 text-amber-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                        {latestReading?.status || 'Unknown'}
+                                    </span>
+                                )}
                             </h1>
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
-                        <h1 className="text-sm text-muted-foreground">Last Update: 5/9/2025, 18:00:00</h1>
+                        <h1 className="text-sm text-muted-foreground">
+                            Last Update: {latestReading ? new Date(latestReading.timestamp).toLocaleString() : 'Never'}
+                        </h1>
                     </CardFooter>
                 </Card>
             </div>
 
+            {/* Combined Chart */}
             <Card className="w-full">
                 <CardHeader>
                     <CardTitle>Battery Metrics Over Time</CardTitle>
                     <CardDescription>
-                        {selectedFilter === '24h' ? '24-hour' :
-                            selectedFilter === '7d' ? '7-day' :
-                                selectedFilter === 'week' ? 'Weekly' : 'Monthly'} battery performance
+                        {chartData.length > 0 
+                            ? 'Historical battery performance' 
+                            : 'Sample battery performance (API data unavailable)'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[400px]">
-                    {isLoading ? (
+                    {isLoadingChart ? (
                         <div className="h-full flex items-center justify-center">
                             <div className="text-center">
                                 <Skeleton className="h-4 w-32 mx-auto mb-2" />
                                 <Skeleton className="h-[300px] w-full" />
                             </div>
                         </div>
+                    ) : chartError ? (
+                        <div className="h-full flex items-center justify-center">
+                            <div className="text-center text-red-500">
+                                <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                                <p>{chartError}</p>
+                            </div>
+                        </div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
-                                data={chartData}
+                                data={chartDataWithFallback}
                                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -253,7 +329,7 @@ const BackupBattery = () => {
                                     yAxisId="voltage"
                                     orientation="left"
                                     stroke="#3b82f6"
-                                    domain={[10.5, 12.5]}
+                                    domain={[10.5, 14]}
                                     label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft' }}
                                 />
 
@@ -314,6 +390,7 @@ const BackupBattery = () => {
                 <CardFooter className="flex justify-between">
                     <p className="text-sm text-muted-foreground">
                         Chart shows the relationship between voltage, current, and battery charge level
+                        {chartData.length === 0 && ' (Using sample data)'}
                     </p>
                 </CardFooter>
             </Card>
@@ -325,24 +402,24 @@ const BackupBattery = () => {
                     <CardHeader>
                         <CardTitle>Voltage Over Time</CardTitle>
                         <CardDescription>
-                            Battery voltage trends
+                            {chartData.length > 0 ? 'Complete voltage history' : 'Sample voltage data'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="h-[250px]">
-                        {isLoading ? (
+                        {isLoadingChart ? (
                             <div className="h-full flex items-center justify-center">
                                 <Skeleton className="h-[200px] w-full" />
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart
-                                    data={chartData}
+                                    data={chartDataWithFallback}
                                     margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                                 >
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                                     <XAxis dataKey="time" />
                                     <YAxis 
-                                        domain={[10.5, 12.5]} 
+                                        domain={[10.5, 14]} 
                                         label={{ value: 'Voltage (V)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                                     />
                                     <Tooltip 
@@ -350,8 +427,8 @@ const BackupBattery = () => {
                                             if (active && payload && payload.length) {
                                                 return (
                                                     <div className="bg-background border rounded-md shadow-sm p-2 text-sm">
-                                                        <p className="font-medium">{`Time: ${label}`}</p>
-                                                        <p className="text-blue-500">{`Voltage: ${payload[0].value}V`}</p>
+                                                        <p className="font-medium">{`Time: ${payload[0]?.payload?.formattedTime || label}`}</p>
+                                                        <p className="text-blue-500">{`Voltage: ${payload[0]?.value}V`}</p>
                                                     </div>
                                                 );
                                             }
@@ -364,7 +441,7 @@ const BackupBattery = () => {
                                         name="Voltage"
                                         stroke="#3b82f6"
                                         strokeWidth={2}
-                                        dot={{ r: 2 }}
+                                        dot={false}
                                         activeDot={{ r: 5 }}
                                     />
                                 </LineChart>
@@ -378,18 +455,18 @@ const BackupBattery = () => {
                     <CardHeader>
                         <CardTitle>Current Draw</CardTitle>
                         <CardDescription>
-                            Battery current consumption
+                            {chartData.length > 0 ? 'Complete current consumption history' : 'Sample current data'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="h-[250px]">
-                        {isLoading ? (
+                        {isLoadingChart ? (
                             <div className="h-full flex items-center justify-center">
                                 <Skeleton className="h-[200px] w-full" />
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart
-                                    data={chartData}
+                                    data={chartDataWithFallback}
                                     margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                                 >
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -403,8 +480,8 @@ const BackupBattery = () => {
                                             if (active && payload && payload.length) {
                                                 return (
                                                     <div className="bg-background border rounded-md shadow-sm p-2 text-sm">
-                                                        <p className="font-medium">{`Time: ${label}`}</p>
-                                                        <p className="text-amber-500">{`Current: ${payload[0].value}A`}</p>
+                                                        <p className="font-medium">{`Time: ${payload[0]?.payload?.formattedTime || label}`}</p>
+                                                        <p className="text-amber-500">{`Current: ${payload[0]?.value}A`}</p>
                                                     </div>
                                                 );
                                             }
@@ -417,7 +494,7 @@ const BackupBattery = () => {
                                         name="Current"
                                         stroke="#f59e0b"
                                         strokeWidth={2}
-                                        dot={{ r: 2 }}
+                                        dot={false}
                                         activeDot={{ r: 5 }}
                                     />
                                 </LineChart>
@@ -431,18 +508,18 @@ const BackupBattery = () => {
                     <CardHeader>
                         <CardTitle>Battery Capacity</CardTitle>
                         <CardDescription>
-                            Battery charge percentage 
+                            {chartData.length > 0 ? 'Complete battery charge history' : 'Sample battery data'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="h-[250px]">
-                        {isLoading ? (
+                        {isLoadingChart ? (
                             <div className="h-full flex items-center justify-center">
                                 <Skeleton className="h-[200px] w-full" />
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart
-                                    data={chartData}
+                                    data={chartDataWithFallback}
                                     margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                                 >
                                     <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -456,8 +533,8 @@ const BackupBattery = () => {
                                             if (active && payload && payload.length) {
                                                 return (
                                                     <div className="bg-background border rounded-md shadow-sm p-2 text-sm">
-                                                        <p className="font-medium">{`Time: ${label}`}</p>
-                                                        <p className="text-green-500">{`Battery: ${payload[0].value}%`}</p>
+                                                        <p className="font-medium">{`Time: ${payload[0]?.payload?.formattedTime || label}`}</p>
+                                                        <p className="text-green-500">{`Battery: ${payload[0]?.value}%`}</p>
                                                     </div>
                                                 );
                                             }
@@ -470,7 +547,7 @@ const BackupBattery = () => {
                                         name="Battery %"
                                         stroke="#10b981"
                                         strokeWidth={2}
-                                        dot={{ r: 2 }}
+                                        dot={false}
                                         activeDot={{ r: 5 }}
                                     />
                                 </LineChart>
@@ -489,13 +566,18 @@ const BackupBattery = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? (
+                    {isLoadingHistory ? (
                         <div className="py-4">
                             <Skeleton className="h-10 w-full mb-2" />
                             <Skeleton className="h-10 w-full mb-2" />
                             <Skeleton className="h-10 w-full mb-2" />
                         </div>
-                    ) : tableData.length === 0 ? (
+                    ) : historyError ? (
+                        <div className="py-10 text-center text-red-500">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                            <p>{historyError}</p>
+                        </div>
+                    ) : historyData.length === 0 ? (
                         <div className="py-10 text-center">
                             <p className="text-muted-foreground">No records found</p>
                         </div>
@@ -512,11 +594,11 @@ const BackupBattery = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {getCurrentRecords().map((record) => (
-                                        <tr key={record.id} className="border-b">
-                                            <td className="p-2">{record.time}</td>
-                                            <td className="p-2">{record.voltage}</td>
-                                            <td className="p-2">{record.current}</td>
+                                    {historyData.map((record) => (
+                                        <tr key={record._id} className="border-b">
+                                            <td className="p-2">{new Date(record.timestamp).toLocaleString()}</td>
+                                            <td className="p-2">{record.voltage.toFixed(1)}</td>
+                                            <td className="p-2">{record.current.toFixed(1)}</td>
                                             <td className="p-2">{record.percentage}</td>
                                             <td className="p-2">
                                                 <span className={`px-2 py-1 rounded-full text-xs ${
@@ -524,7 +606,7 @@ const BackupBattery = () => {
                                                         ? 'bg-green-100 text-green-800' 
                                                         : record.status === 'Warning'
                                                             ? 'bg-amber-100 text-amber-800'
-                                                            : 'bg-red-100 text-red-800' // For Critical status
+                                                            : 'bg-red-100 text-red-800'
                                                 }`}>
                                                     {record.status}
                                                 </span>
@@ -538,24 +620,24 @@ const BackupBattery = () => {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <div className="text-sm text-muted-foreground">
-                        {tableData.length > 0 
-                            ? `Showing page ${currentPage} of ${totalPages} (${tableData.length} records)` 
+                        {historyData.length > 0 
+                            ? `Showing page ${tableCurrentPage} of ${totalPages} (${historyData.length} records per page)` 
                             : 'No records to display'}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage <= 1 || isLoading}
+                            onClick={() => handlePageChange(tableCurrentPage - 1)}
+                            disabled={tableCurrentPage <= 1 || isLoadingHistory}
                         >
                             Previous
                         </Button>
                         <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= totalPages || isLoading}
+                            onClick={() => handlePageChange(tableCurrentPage + 1)}
+                            disabled={tableCurrentPage >= totalPages || isLoadingHistory}
                         >
                             Next
                         </Button>
