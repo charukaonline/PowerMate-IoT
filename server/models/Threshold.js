@@ -7,34 +7,23 @@ const ThresholdSchema = new mongoose.Schema({
         required: true
     },
     thresholds: {
-        voltage: {
-            min: { type: Number, default: 200 },
-            max: { type: Number, default: 250 },
-            warningMin: { type: Number, default: 210 },
-            warningMax: { type: Number, default: 240 },
+        powerSupply: {
+            minVoltage: { type: Number, default: 10 },
+            maxVoltage: { type: Number, default: 13 },
+            minCurrent: { type: Number, default: 0.5 },
+            maxCurrent: { type: Number, default: 5 },
         },
-        current: {
-            min: { type: Number, default: 5 },
-            max: { type: Number, default: 40 },
-            warningMin: { type: Number, default: 10 },
-            warningMax: { type: Number, default: 30 },
+        backupBattery: {
+            minVoltage: { type: Number, default: 9 },
+            maxVoltage: { type: Number, default: 12.5 },
+            minCurrent: { type: Number, default: 0.5 },
+            maxCurrent: { type: Number, default: 5 },
         },
-        fuel: {
-            warningLevel: { type: Number, default: 30 },
+        generator: {
+            tankCapacity: { type: Number, default: 200 },
             criticalLevel: { type: Number, default: 15 },
         },
-        battery: {
-            warningVoltage: { type: Number, default: 11.8 },
-            criticalVoltage: { type: Number, default: 11.2 },
-            maxTemperature: { type: Number, default: 45 },
-        },
-        temperature: {
-            normal: { type: Number, default: 70 },
-            warning: { type: Number, default: 85 },
-            critical: { type: Number, default: 95 },
-        }
     },
-    tankCapacity: { type: Number, default: 200 },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });

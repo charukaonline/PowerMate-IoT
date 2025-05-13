@@ -1,65 +1,98 @@
 const Threshold = require('../models/Threshold');
 
-// Get user's threshold settings
-const getUserThresholds = async (req, res) => {
+/**
+ * Get user threshold settings
+ * @route GET /api/thresholds
+ * @access Private
+ */
+exports.getUserThresholds = async (req, res) => {
     try {
-        // Get user ID from the authenticated user object
-        const userId = req.user._id;
-        
-        // Find threshold settings for the user, or create default settings if none exist
-        let thresholds = await Threshold.findOne({ userId });
-        
-        if (!thresholds) {
-            // Create default threshold settings for new user
-            thresholds = await Threshold.create({ userId });
+        // Find thresholds for the authenticated user
+        let userThresholds = await Threshold.findOne({ userId: req.user.id });
+
+        // If no settings exist yet, create with defaults from the schema
+        if (!userThresholds) {
+            userThresholds = new Threshold({
+                userId: req.user.id
+                // Other fields will use default values defined in the schema
+            });
+            await userThresholds.save();
         }
-        
-        res.status(200).json({ 
-            success: true, 
-            data: thresholds 
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                thresholds: userThresholds.thresholds
+            }
         });
     } catch (error) {
-        console.error('Error getting threshold settings:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Could not retrieve threshold settings',
-            error: error.message 
+        console.error('Error fetching threshold settings:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while fetching threshold settings'
         });
     }
 };
 
-// Update user's threshold settings
-const updateUserThresholds = async (req, res) => {
+/**
+ * Update user threshold settings
+ * @route PUT /api/thresholds
+ * @access Private
+ */
+exports.updateUserThresholds = async (req, res) => {
     try {
-        const userId = req.user._id;
-        const updatedSettings = req.body;
-        
-        // Update the timestamp
-        updatedSettings.updatedAt = new Date();
-        
-        // Find and update the user's settings
-        const thresholds = await Threshold.findOneAndUpdate(
-            { userId },
-            updatedSettings,
-            { new: true, upsert: true, runValidators: true }
+        const { thresholds } = req.body;
+
+        if (!thresholds) {
+            return res.status(400).json({
+                success: false,
+                message: 'No threshold data provided'
+            });
+        }
+
+        // Validate the thresholds (optional, can be expanded)
+        // Simple validation to ensure numeric values
+        for (const category in thresholds) {
+            for (const key in thresholds[category]) {
+                if (typeof thresholds[category][key] !== 'number') {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Invalid value for ${category}.${key}. Must be a number.`
+                    });
+                }
+            }
+        }
+
+        // Update or create settings document
+        const updateData = {
+            thresholds,
+            updatedAt: Date.now()
+        };
+
+        const options = {
+            new: true,        // Return the updated document
+            upsert: true,     // Create if it doesn't exist
+            setDefaultsOnInsert: true // Apply schema defaults if creating
+        };
+
+        const updatedThresholds = await Threshold.findOneAndUpdate(
+            { userId: req.user.id },
+            updateData,
+            options
         );
-        
-        res.status(200).json({
+
+        return res.status(200).json({
             success: true,
             message: 'Threshold settings updated successfully',
-            data: thresholds
+            data: {
+                thresholds: updatedThresholds.thresholds
+            }
         });
     } catch (error) {
         console.error('Error updating threshold settings:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: 'Could not update threshold settings',
-            error: error.message
+            message: 'Server error while updating threshold settings'
         });
     }
-};
-
-module.exports = {
-    getUserThresholds,
-    updateUserThresholds
 };
