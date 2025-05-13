@@ -31,11 +31,12 @@ const GeneratorFuel = () => {
         
         // Fetch initial data
         fetchTemperature(deviceId);
+        fetchFuelHistory({ limit: 100 }); // Pass deviceId to ensure it works
         fetchFuelHistory({ limit: 7 }); // Last 7 records for the chart
         
         // Set up polling intervals
         const tempInterval = setInterval(() => fetchTemperature(deviceId), 60000); // every minute
-        const fuelInterval = setInterval(() => fetchFuelHistory({ limit: 7 }), 300000); // every 5 minutes
+        const fuelInterval = setInterval(() => fetchFuelHistory({ deviceId, limit: 100 }), 300000); // every 5 minutes
         
         return () => {
             clearInterval(tempInterval);
@@ -98,9 +99,6 @@ const GeneratorFuel = () => {
                                     'No data'
                                 )}
                             </h1>
-                            {temperature && (
-                                <p className="text-sm mt-1">Humidity: {temperature.humidity}%</p>
-                            )}
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
