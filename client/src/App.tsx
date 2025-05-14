@@ -16,6 +16,12 @@ import Login from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { RedirectAuthenticatedUser } from './components/RedirectAuthenticatedUser';
 import NotFound from './pages/NotFound';
+import PowerHistoryTable from "@/pages/DCPowerHistory.tsx";
+import RegisterForm from "@/pages/Register.tsx";
+import ProfilePage from "@/pages/UserProfile.tsx";
+import BatteryHistoryDashboard from "@/pages/BackupBattery";
+import FullBatteryHistory from "@/pages/FullBatteryHistory.tsx";
+import {DashboardSummary} from "@/pages/DashboardSummary.tsx";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -66,14 +72,16 @@ function App() {
           <Route path="/" element={
             <ProtectedRoute>
               <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                <Dashboard />
+                <DashboardSummary />
               </Layout>
             </ProtectedRoute>
           } />
+          <Route path="/register" element={<RegisterForm />}/>
+          <Route path="/login" element={<Login />}/>
           <Route path="/power-supply" element={
             <ProtectedRoute>
               <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                <PowerSupply />
+                <PowerHistoryTable />
               </Layout>
             </ProtectedRoute>
           } />
@@ -94,7 +102,7 @@ function App() {
           <Route path="/backup-battery" element={
             <ProtectedRoute>
               <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-                <BackupBattery />
+                <BatteryHistoryDashboard />
               </Layout>
             </ProtectedRoute>
           } />
@@ -105,7 +113,18 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+                <ProfilePage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/full-battery-history" element={
+            <ProtectedRoute>
+              <FullBatteryHistory />
+            </ProtectedRoute>
+          } />
           {/* Fallback route */}
           <Route path="*" element={<NotFound />} />
         </Routes>

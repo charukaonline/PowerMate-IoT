@@ -1,20 +1,17 @@
-const jwt = require('jsonwebtoken');
+// utils/generateTokenAndSetCookie.js
+const jwt = require('jsonwebtoken')
 
-const generateTokenAndSetCookie = (res, userId) => {
-    // Create token using the same secret that will be used in verification
-    const token = jwt.sign({ userId }, process.env.USER_JWT_SECRET || 'powermate-user-jwt-secret', {
-        expiresIn: '30d',
-    });
+function generateTokenAndSetCookie(res, userId) {
+    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+        expiresIn: '7d'
+    })
 
-    // Set JWT as HTTP-Only cookie
-    res.cookie('jwt', token, {
+    res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: 'lax', // Changed from 'strict' to 'lax' to allow cross-site requests
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+}
 
-    return token;
-};
-
-module.exports = { generateTokenAndSetCookie };
+module.exports = { generateTokenAndSetCookie }

@@ -6,9 +6,25 @@ const connectDB = require("./config/db");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const authRoutes = require("./routes/authRoutes");
 const userAuthRoutes = require("./routes/userAuthRoutes");
+const dcpowerHistoryRoutes = require("./routes/dcHistoryRoutes");
+const batteryHistoryRoutes = require("./routes/batteryHistoryRoutes");
+const currentFuelLevelRoutes = require("./routes/currentFuelLevelRoutes");
+const temperatureRoutes = require("./routes/temperatureRoutes");
+const thresholdRoutes = require("./routes/thresholdRoutes");
+const dcCurrentRoutes = require("./routes/dcPowerRoutes");
+const logoutRoutes = require("./routes/logoutRoutes");
+const userController = require("./routes/userControllerRoutes");
+const helmet = require('helmet');
+
+
 
 // Load environment variables
 dotenv.config();
+
+
+
+
+
 
 // Check for MongoDB URI
 if (!process.env.MONGO_URI) {
@@ -29,17 +45,30 @@ const app = express();
 // This fixes the issue with credentials and preflight requests
 const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
 
+app.use('/static', express.static('public'));
+
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc:  ["'self'"],        // only allow external JS from same origin
+    styleSrc:   ["'self'"],        // only allow external CSS from same origin
+    imgSrc:     ["'self'", "data:"],
+    connectSrc: ["'self'"],
+    fontSrc:    ["'self'"],
+    objectSrc:  ["'none'"],
+    upgradeInsecureRequests: [],
+  }
+}));
+
 app.use(
   cors({
     origin: function(origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl requests)
-      if (!origin) return callback(null, true);
-      
+      if (!origin) return callback(null, true); // allow non-origin requests
       if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
+        return callback(null, true);
       } else {
-        // For IoT devices and other sources, still allow the request
-        callback(null, true);
+        // Deny requests from unknown origins for security
+        return callback(new Error('Origin not allowed'), false);
       }
     },
     credentials: true,
@@ -94,6 +123,16 @@ app.use("/api/sensor-data", sensorDataRoutes);
 app.use("/api/userAuth", userAuthRoutes);
 app.use("/api/thresholds", require("./routes/thresholdRoutes"));
 app.use('/api/generator', require('./routes/generatorRoutes'));
+app.use('/api/', dcpowerHistoryRoutes);
+app.use('/api/', batteryHistoryRoutes);
+app.use('/api/', currentFuelLevelRoutes);
+app.use('/api/', temperatureRoutes);
+
+
+app.use('/api/', logoutRoutes);
+app.use('/api/', dcCurrentRoutes);
+app.use('/api/', userController);
+app.use('/api/thresholds', thresholdRoutes);
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
