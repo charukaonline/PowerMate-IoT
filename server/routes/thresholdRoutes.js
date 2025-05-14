@@ -4,9 +4,9 @@ const { getUserThresholds, updateUserThresholds } = require('../controllers/thre
 const router = express.Router();
 
 // Get user threshold settings
-router.get('/', getUserThresholds);
+router.get('/get-thresholds', getUserThresholds);
 
 // Update user threshold settings
-router.put('/', updateUserThresholds);
+router.put('/update-thresholds', updateUserThresholds);
 
 module.exports = router;

@@ -99,16 +99,36 @@ const checkAuth = async (req, res) => {
 
 const myData = async (req, res) => {
     try {
-        const user = await User.findById(req.userId).select("-password");
-        if (!user) {
-            return res.status(404).json({success: false, message: "User not found"});
+        // This middleware should be using verifyToken to populate req.user
+        // If the token is valid, the user data will be available
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized - Please log in'
+            });
         }
 
-        res.status(200).json({success: true, user});
+        // Return the user data without the password
+        const userData = {
+            _id: req.user._id,
+            name: req.user.name,
+            email: req.user.email,
+            createdAt: req.user.createdAt,
+            updatedAt: req.user.updatedAt
+        };
+
+        return res.status(200).json({
+            success: true,
+            user: userData
+        });
     } catch (error) {
-        console.log("Error in myData", error);
-        res.status(400).json({success: false, message: error.message});
+        console.error('Error fetching user data:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while fetching user data'
+        });
     }
-}
+};
+
 
 module.exports = {signup, login, logout, checkAuth, myData};

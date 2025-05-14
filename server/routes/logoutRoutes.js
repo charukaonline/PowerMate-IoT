@@ -8,6 +8,6 @@ router.get("/check-auth", verifyToken, checkAuth);
 
 router.get("/logout", logout);
 
-router.get("/me", myData);
+router.get("/me", verifyToken, myData);
 
 module.exports = router;
