@@ -82,9 +82,13 @@ const BatteryHistoryDashboard: React.FC<BatteryHistoryDashboardProps> = ({
     }
   };
 
-  // Initial fetch
+  // Initial fetch and auto-refresh
   useEffect(() => {
     fetchData();
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, [timeRange]);
 
   // Sort data by timestamp

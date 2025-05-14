@@ -322,7 +322,11 @@ const PowerHistoryChart = () => {
                 </div>
               )}
               <motion.button
-                className={`p-2 rounded-full border ${borderClass} shadow-md ${refreshing ? "animate-spin" : ""} ${darkMode ? "bg-gray-700" : "bg-gray-200"} transition-colors duration-300`}
+                className={`p-2 rounded-full border ${borderClass} shadow-md ${
+                  refreshing ? "animate-spin" : ""
+                } ${
+                  darkMode ? "bg-gray-700" : "bg-gray-200"
+                } transition-colors duration-300`}
                 onClick={() => {
                   setRefreshing(true);
                   setTimeout(() => setRefreshing(false), 1000);
@@ -339,12 +343,24 @@ const PowerHistoryChart = () => {
                   darkMode ? "Switch to light mode" : "Switch to dark mode"
                 }
               >
-                <svg className={`w-6 h-6 ${refreshing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1 1 19 5.635" />
+                <svg
+                  className={`w-6 h-6 ${refreshing ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1 1 19 5.635"
+                  />
                 </svg>
               </motion.button>
               <motion.button
-                className={`p-2 rounded-full ${darkMode ? "bg-gray-700" : "bg-gray-200"} transition-colors duration-300`}
+                className={`p-2 rounded-full ${
+                  darkMode ? "bg-gray-700" : "bg-gray-200"
+                } transition-colors duration-300`}
                 onClick={toggleDarkMode}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0 }}
@@ -355,11 +371,27 @@ const PowerHistoryChart = () => {
                 }
               >
                 {darkMode ? (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"
+                    />
                   </svg>
                 ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
                     <circle cx="12" cy="12" r="5" />
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
                   </svg>
@@ -374,16 +406,32 @@ const PowerHistoryChart = () => {
           )}
           <AnimatePresence mode="wait">
             {loading ? (
-              <div className={`flex justify-center items-center h-64 ${loadingBgClass} rounded-xl animate-pulse`}>
-                <svg className="w-12 h-12 animate-spin text-blue-400" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+              <div
+                className={`flex justify-center items-center h-64 ${loadingBgClass} rounded-xl animate-pulse`}
+              >
+                <svg
+                  className="w-12 h-12 animate-spin text-blue-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  viewBox="0 0 24 24"
+                >
                   <circle className="opacity-25" cx="12" cy="12" r="10" />
                   <path className="opacity-75" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
               </div>
             ) : error ? (
-              <div className={`flex justify-center items-center h-64 ${errorBgClass} rounded-xl`}>{error}</div>
+              <div
+                className={`flex justify-center items-center h-64 ${errorBgClass} rounded-xl`}
+              >
+                {error}
+              </div>
             ) : data.length === 0 ? (
-              <div className={`flex justify-center items-center h-64 ${emptyBgClass} rounded-xl`}>No data available.</div>
+              <div
+                className={`flex justify-center items-center h-64 ${emptyBgClass} rounded-xl`}
+              >
+                No data available.
+              </div>
             ) : (
               <motion.div
                 className="space-y-6"
@@ -579,15 +627,9 @@ const PowerHistoryChart = () => {
                           <Tooltip
                             formatter={(value, name) => {
                               if (name === "Voltage (V)")
-                                return [
-                                  `${Number(value).toFixed(2)} V`,
-                                  name,
-                                ];
+                                return [`${Number(value).toFixed(2)} V`, name];
                               if (name === "Current (A)")
-                                return [
-                                  `${Number(value).toFixed(3)} A`,
-                                  name,
-                                ];
+                                return [`${Number(value).toFixed(3)} A`, name];
                               return [value, name];
                             }}
                             labelFormatter={(_, data) => {
@@ -768,7 +810,9 @@ const PowerHistoryChart = () => {
                               <td className="px-4 py-2">
                                 {entry.current.toFixed(3)}
                               </td>
-                              <td className="px-4 py-2">{Number(entry.power).toFixed(2)}</td>
+                              <td className="px-4 py-2">
+                                {Number(entry.power).toFixed(2)}
+                              </td>
                               <td className={`px-4 py-2 ${tableTextClass}`}>
                                 {entry.fullTimestamp}
                               </td>

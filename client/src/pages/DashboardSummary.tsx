@@ -302,10 +302,14 @@ export function DashboardSummary() {
   return (
     <div className="relative w-full h-full">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-green-400 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg">System Dashboard</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-green-400 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg">
+          System Dashboard
+        </h1>
         <div className="flex items-center gap-2">
           <button
-            className={`p-2 rounded-full border border-blue-300 bg-blue-100 dark:bg-blue-900 dark:border-blue-700 shadow-md ${refreshing ? "animate-spin" : ""}`}
+            className={`p-2 rounded-full border border-blue-300 bg-blue-100 dark:bg-blue-900 dark:border-blue-700 shadow-md ${
+              refreshing ? "animate-spin" : ""
+            }`}
             onClick={() => {
               setRefreshing(true);
               setTimeout(() => setRefreshing(false), 1000);
@@ -317,12 +321,24 @@ export function DashboardSummary() {
             aria-label="Refresh"
             disabled={refreshing}
           >
-            <svg className={`w-6 h-6 ${refreshing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1 1 19 5.635" />
+            <svg
+              className={`w-6 h-6 ${refreshing ? "animate-spin" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1 1 19 5.635"
+              />
             </svg>
           </button>
           {lastUpdated && (
-            <span className="text-xs text-gray-400 ml-2">Last updated: {lastUpdated}</span>
+            <span className="text-xs text-gray-400 ml-2">
+              Last updated: {lastUpdated}
+            </span>
           )}
         </div>
       </div>
