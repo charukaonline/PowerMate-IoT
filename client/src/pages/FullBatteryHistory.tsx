@@ -103,6 +103,8 @@ export default function FullBatteryHistory() {
     const [displayData, setDisplayData] = useState<FullBatteryData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Pagination and view settings
     const [itemsPerPage, setItemsPerPage] = useState<25 | 50 | 100>(25);
@@ -110,22 +112,28 @@ export default function FullBatteryHistory() {
     const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
-        const fetchData = async () => {
+        let intervalId: NodeJS.Timeout;
+        const fetchData = async (showLoading = true) => {
             try {
+                if (showLoading) setIsLoading(true);
+                setRefreshing(true);
                 const response = await axios.get(
                     "http://localhost:5000/api/full-battery-history/88:13:BF:0C:3B:6C"
                 );
                 setAllData(response.data);
                 setError(null);
+                setLastUpdated(new Date());
             } catch (err) {
                 setError("Failed to fetch full battery history data.");
                 console.error("Error fetching data:", err);
             } finally {
                 setIsLoading(false);
+                setRefreshing(false);
             }
         };
-
         fetchData();
+        intervalId = setInterval(() => fetchData(false), 5000);
+        return () => clearInterval(intervalId);
     }, []);
 
     // Update pagination whenever allData or itemsPerPage changes
@@ -287,8 +295,8 @@ export default function FullBatteryHistory() {
                 />
 
                 <motion.div variants={cardVariants}>
-                    <Card className="backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border border-white/20 dark:border-zinc-700/30 rounded-2xl shadow-xl overflow-hidden">
-                        <CardHeader className="bg-gradient-to-r from-green-500/10 to-blue-500/10 dark:from-green-900/20 dark:to-blue-900/20 backdrop-blur-md border-b border-white/10 dark:border-zinc-800/50">
+                    <Card className="backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border border-white/20 dark:border-zinc-700/30 rounded-2xl shadow-xl overflow-hidden relative">
+                        <CardHeader className="bg-gradient-to-r from-green-500/10 to-blue-500/10 dark:from-green-900/20 dark:to-blue-900/20 backdrop-blur-md border-b border-white/10 dark:border-zinc-800/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <motion.div
                                     initial={{ opacity: 0, x: -10 }}
@@ -339,6 +347,26 @@ export default function FullBatteryHistory() {
                                         ))}
                                     </div>
                                 </motion.div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    className={`p-2 rounded-full border border-blue-300 bg-blue-100 dark:bg-blue-900 dark:border-blue-700 shadow-md ${refreshing ? "animate-spin" : ""}`}
+                                    onClick={async () => {
+                                        setRefreshing(true);
+                                        await new Promise(r => setTimeout(r, 500));
+                                        setLastUpdated(new Date());
+                                        setRefreshing(false);
+                                    }}
+                                    aria-label="Refresh"
+                                    disabled={refreshing}
+                                >
+                                    <svg className={`w-6 h-6 ${refreshing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1 1 19 5.635" />
+                                    </svg>
+                                </button>
+                                {lastUpdated && (
+                                    <span className="text-xs text-gray-400 ml-2">Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                                )}
                             </div>
                         </CardHeader>
 

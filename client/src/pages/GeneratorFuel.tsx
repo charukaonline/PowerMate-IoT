@@ -15,12 +15,13 @@ import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 import {Calendar, ChevronDown, RefreshCw, Moon, Sun} from "lucide-react";
 
 const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
-    const [fuelHistory, setFuelHistory] = useState([]);
-    const [filteredHistory, setFilteredHistory] = useState([]);
-    const [currentFuel, setCurrentFuel] = useState(null);
-    const [temperature, setTemperature] = useState(null);
+    const [fuelHistory, setFuelHistory] = useState<any[]>([]);
+    const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
+    const [currentFuel, setCurrentFuel] = useState<number | null>(null);
+    const [temperature, setTemperature] = useState<{ value: number; unit: string } | null>(null);
     const [loading, setLoading] = useState(true);
     const [timeFilter, setTimeFilter] = useState("30d");
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
 
@@ -32,7 +33,7 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
 
             // Listen for changes in system preference
             const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            const handleDarkModeChange = (e) => setDarkMode(e.matches);
+            const handleDarkModeChange = (e: MediaQueryListEvent) => setDarkMode(e.matches);
 
             darkModeMediaQuery.addEventListener('change', handleDarkModeChange);
             return () => darkModeMediaQuery.removeEventListener('change', handleDarkModeChange);
@@ -56,7 +57,7 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
 
             if (historyRes.data?.data) {
                 const sortedData = historyRes.data.data
-                    .map((item) => ({
+                    .map((item: any) => ({
                         ...item,
                         timestamp: new Date(item.timestamp),
                         formattedDate: new Date(item.timestamp).toLocaleDateString("en-US", {
@@ -64,7 +65,7 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
                             day: "numeric",
                         }),
                     }))
-                    .sort((a, b) => a.timestamp - b.timestamp);
+                    .sort((a: any, b: any) => a.timestamp - b.timestamp);
 
                 setFuelHistory(sortedData);
                 applyTimeFilter(sortedData, timeFilter);
@@ -92,22 +93,22 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
         }
     };
 
-    const applyTimeFilter = (data, filter) => {
+    const applyTimeFilter = (data: any[], filter: string) => {
         const now = new Date();
         let filteredData;
 
         switch (filter) {
             case "24h":
                 const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                filteredData = data.filter((item) => item.timestamp >= oneDayAgo);
+                filteredData = data.filter((item: any) => item.timestamp >= oneDayAgo);
                 break;
             case "7d":
                 const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                filteredData = data.filter((item) => item.timestamp >= sevenDaysAgo);
+                filteredData = data.filter((item: any) => item.timestamp >= sevenDaysAgo);
                 break;
             case "30d":
                 const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                filteredData = data.filter((item) => item.timestamp >= thirtyDaysAgo);
+                filteredData = data.filter((item: any) => item.timestamp >= thirtyDaysAgo);
                 break;
             case "all":
             default:
@@ -115,15 +116,23 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
                 break;
         }
 
-        setFilteredHistory(filteredData.map(item => ({
+        setFilteredHistory(filteredData.map((item: any) => ({
             ...item,
             timestamp: item.formattedDate
         })));
     };
 
     useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        let intervalId: NodeJS.Timeout;
+        const fetchAll = async () => {
+            setRefreshing(true);
+            await fetchData();
+            setLastUpdated(new Date());
+            setRefreshing(false);
+        };
+        fetchAll();
+        intervalId = setInterval(fetchAll, 5000);
+        return () => clearInterval(intervalId);
     }, [deviceId]);
 
     useEffect(() => {
@@ -132,14 +141,14 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
         }
     }, [timeFilter, fuelHistory]);
 
-    const getFuelLevelColor = (level) => {
+    const getFuelLevelColor = (level: number | null) => {
         if (level === null) return darkMode ? "text-gray-400" : "text-gray-500";
         if (level <= 20) return "text-red-500";
         if (level <= 50) return darkMode ? "text-yellow-400" : "text-yellow-500";
         return darkMode ? "text-green-400" : "text-green-500";
     };
 
-    const getWaterColor = (level) => {
+    const getWaterColor = (level: number | null) => {
         if (level === null) return darkMode ? "from-gray-500 to-gray-600" : "from-gray-400 to-gray-500";
         if (level <= 20) return darkMode ? "from-red-500 to-red-400" : "from-red-600 to-red-500";
         if (level <= 50) return darkMode ? "from-yellow-500 to-yellow-400" : "from-yellow-600 to-yellow-500";
@@ -147,7 +156,11 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
     };
 
     const handleRefresh = () => {
-        fetchData();
+        setRefreshing(true);
+        fetchData().then(() => {
+            setLastUpdated(new Date());
+            setRefreshing(false);
+        });
     };
 
     const toggleDarkMode = () => {
@@ -183,10 +196,10 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
             initial={{opacity: 0, y: 20}}
             animate={{opacity: 1, y: 0}}
             transition={{duration: 0.5}}
-            className={`w-full p-6 rounded-lg shadow-lg border ${theme.bg} ${theme.border} transition-colors duration-300`}
+            className={`w-full p-6 rounded-lg shadow-2xl border-2 ${theme.bg} ${theme.border} transition-colors duration-300`}
         >
             <div className="flex justify-between items-center mb-6">
-                <h2 className={`text-2xl font-bold ${theme.text}`}>Generator Fuel Monitor</h2>
+                <h2 className={`text-2xl font-extrabold bg-gradient-to-r from-blue-500 via-green-400 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg ${theme.text}`}>Generator Fuel Monitor</h2>
                 <div className="flex items-center space-x-2">
                     <motion.button
                         whileTap={{scale: 0.95}}
@@ -194,24 +207,29 @@ const GeneratorFuel = ({deviceId = "88:13:BF:0C:3B:6C"}) => {
                         className={`p-2 rounded-full ${theme.buttonHover}`}
                     >
                         {darkMode ? (
-                            <Sun size={20} className="text-yellow-400"/>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
+                            </svg>
                         ) : (
-                            <Moon size={20} className="text-blue-600"/>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="5" />
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                            </svg>
                         )}
                     </motion.button>
                     <motion.button
                         whileTap={{scale: 0.95}}
                         onClick={handleRefresh}
-                        className={`p-2 rounded-full ${theme.buttonHover}`}
+                        className={`p-2 rounded-full border border-blue-300 bg-blue-100 dark:bg-blue-900 dark:border-blue-700 shadow-md ${refreshing ? "animate-spin" : ""} ${theme.buttonHover}`}
                         disabled={refreshing}
                     >
-                        <motion.div
-                            animate={refreshing ? {rotate: 360} : {rotate: 0}}
-                            transition={{duration: 1, repeat: refreshing ? Infinity : 0, ease: "linear"}}
-                        >
-                            <RefreshCw size={20} className={theme.subtext}/>
-                        </motion.div>
+                        <svg className={`w-6 h-6 ${refreshing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.635 19A9 9 0 1 1 19 5.635" />
+                        </svg>
                     </motion.button>
+                    {lastUpdated && (
+                        <span className="text-xs text-gray-400 ml-2">Last updated: {lastUpdated instanceof Date ? lastUpdated.toLocaleTimeString() : ""}</span>
+                    )}
                 </div>
             </div>
 
